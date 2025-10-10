@@ -107,6 +107,60 @@ plotter.plot_interactive_trees(
 )
 ```
 
+## Visualization Gallery
+
+### Tree Structure Analysis
+
+#### Feature Importance
+Combined view of feature importance across weight, gain, and cover metrics.
+
+![Feature Importance](docs/images/feature_importance_combined.png)
+*California Housing dataset - shows MedInc (median income) as the most important feature*
+
+#### Feature Gain Distribution
+Distribution of gain values across all splits for each feature.
+
+![Feature Gain Distribution](docs/images/feature_gain_distribution.png)
+*Iris dataset - boxplot showing gain distributions per feature*
+
+#### Tree Depth Distribution
+Histogram showing the distribution of tree depths in the ensemble.
+
+![Tree Depth Histogram](docs/images/tree_depth_histogram.png)
+*Iris dataset - most trees have depths between 2-5*
+
+#### Cumulative Gain
+Cumulative loss reduction across the tree ensemble.
+
+![Cumulative Gain](docs/images/cumulative_gain.png)
+*California Housing dataset - shows how model improves with each tree*
+
+#### Feature Usage Heatmap
+Heatmap showing which features are used together in trees.
+
+![Feature Usage Heatmap](docs/images/feature_usage_heatmap.png)
+*California Housing dataset - reveals feature co-occurrence patterns*
+
+#### Gain Statistics Per Tree
+Box plots showing gain statistics for each tree in the ensemble.
+
+![Gain Stats Per Tree](docs/images/gain_stats_per_tree.png)
+*California Housing dataset - gain distribution across all 100 trees*
+
+### Data-Dependent Analysis
+
+#### Partial Dependence Plot (PDP)
+Shows how predictions change as a feature varies, with ICE curves for individual samples.
+
+![Partial Dependence Plot](docs/images/PDP_MedInc.png)
+*California Housing dataset - MedInc (median income) shows strong positive relationship with house value*
+
+#### Marginal Impact
+Feature-specific prediction changes across all splits in the model.
+
+![Marginal Impact](docs/images/marginal_impact_MedInc.png)
+*California Housing dataset - detailed view of how MedInc splits affect predictions*
+
 ## API Reference
 
 ### TreeAnalyzer
@@ -119,6 +173,8 @@ The main class for tree-level analysis that doesn't require data.
 - `plot_feature_importance_distributions()`: Boxplots of importance distributions
 - `plot_tree_depth_histogram()`: Distribution of tree depths
 - `plot_cumulative_gain()`: Cumulative loss reduction across trees
+- `plot_feature_usage_heatmap()`: Feature co-occurrence patterns
+- `plot_gain_stats_per_tree()`: Gain distribution across trees
 
 ### ModelAnalyzer
 

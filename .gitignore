@@ -34,3 +34,11 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Example outputs (but keep docs/images/)
+iris_xgb/
+california_housing_xgb/
+iris_data/
+housing_data/
+*.json
+!docs/
