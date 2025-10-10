@@ -65,14 +65,26 @@ class ModelAnalyzer:
         if json_path is None:
             json_path = self.tree_analyzer.json_path
         
-        self.xgb_model = xgb.XGBClassifier()
+        # Determine if it's a classifier or regressor from the objective
+        objective = self.tree_analyzer.objective
+        if isinstance(objective, dict):
+            objective_name = objective.get("name", "")
+        else:
+            objective_name = str(objective)
+        
+        # Load appropriate model type
+        if "reg:" in objective_name or "squarederror" in objective_name:
+            self.xgb_model = xgb.XGBRegressor()
+        else:
+            self.xgb_model = xgb.XGBClassifier()
+        
         self.xgb_model.load_model(json_path)
         print(f"✅ Loaded XGBoost model from {json_path}")
     
     def predict_in_batches(self, X: pd.DataFrame, batch_size: int = 10000,
                           base_margin: Optional[pd.Series] = None) -> np.ndarray:
         """
-        Predict probabilities in batches to avoid memory issues.
+        Predict values in batches to avoid memory issues.
         
         Args:
             X: Input features
@@ -80,12 +92,12 @@ class ModelAnalyzer:
             base_margin: Base margin for predictions
             
         Returns:
-            Array of predicted probabilities
+            Array of predictions (probabilities for classification, values for regression)
         """
         if self.xgb_model is None:
             raise ValueError("XGBoost model not loaded. Call load_xgb_model() first.")
         
-        y_pred_prob = []
+        y_pred = []
         
         for i in range(0, len(X), batch_size):
             X_batch = X.iloc[i:i + batch_size]
@@ -95,12 +107,19 @@ class ModelAnalyzer:
             else:
                 base_margin_batch = None
             
-            y_pred_batch = self.xgb_model.predict_proba(
-                X_batch, base_margin=base_margin_batch
-            )
-            y_pred_prob.extend(y_pred_batch[:, 1])
+            # Use predict_proba for classification, predict for regression
+            if hasattr(self.xgb_model, 'predict_proba') and 'multi:' in str(self.tree_analyzer.objective):
+                y_pred_batch = self.xgb_model.predict_proba(
+                    X_batch, base_margin=base_margin_batch
+                )
+                y_pred.extend(y_pred_batch[:, 1] if y_pred_batch.shape[1] == 2 else y_pred_batch)
+            else:
+                y_pred_batch = self.xgb_model.predict(
+                    X_batch, base_margin=base_margin_batch
+                )
+                y_pred.extend(y_pred_batch)
         
-        return np.array(y_pred_prob)
+        return np.array(y_pred)
     
     def plot_partial_dependence(self, feature_name: str, grid_points: int = 20,
                                n_curves: int = 1000) -> None:
