@@ -63,30 +63,8 @@ def comprehensive_analysis_example():
     feature_plotter = FeaturePlotter(tree_analyzer.plotter.save_dir)
     
     # Feature co-occurrence analysis
-    from itertools import combinations
-    import numpy as np
-    
-    # Tree-level co-occurrence
-    trees = tree_analyzer.trees
-    num_features = len(tree_analyzer.feature_names)
-    co_matrix = np.zeros((num_features, num_features), dtype=int)
-    
-    for tree in trees:
-        split_indices = tree.get("split_indices", [])
-        features_in_tree = set(tree_analyzer.feature_names[i] for i in split_indices 
-                              if i < len(tree_analyzer.feature_names))
-        for f1, f2 in combinations(features_in_tree, 2):
-            i, j = tree_analyzer.feature_names.index(f1), tree_analyzer.feature_names.index(f2)
-            co_matrix[i][j] += 1
-            co_matrix[j][i] += 1
-        for f in features_in_tree:
-            i = tree_analyzer.feature_names.index(f)
-            co_matrix[i][i] += 1
-    
-    feature_plotter.plot_feature_cooccurrence_heatmap(
-        co_matrix, tree_analyzer.feature_names,
-        "Tree-Level Feature Co-occurrence", "feature_cooccurrence_tree_level.png"
-    )
+    tree_analyzer.plot_tree_level_feature_cooccurrence()
+    tree_analyzer.plot_path_level_feature_cooccurrence()
     
     # Feature usage and depth analysis
     feature_plotter.plot_feature_usage_heatmap(

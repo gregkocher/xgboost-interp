@@ -175,6 +175,10 @@ The main class for tree-level analysis that doesn't require data.
 - `plot_cumulative_gain()`: Cumulative loss reduction across trees
 - `plot_feature_usage_heatmap()`: Feature co-occurrence patterns
 - `plot_gain_stats_per_tree()`: Gain distribution across trees
+- `compute_tree_level_feature_cooccurrence()`: Compute features appearing in same tree
+- `compute_path_level_feature_cooccurrence()`: Compute features on same decision paths
+- `plot_tree_level_feature_cooccurrence()`: Plot tree-level co-occurrence heatmap
+- `plot_path_level_feature_cooccurrence()`: Plot path-level co-occurrence heatmap
 
 ### ModelAnalyzer
 

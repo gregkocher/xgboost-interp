@@ -292,3 +292,101 @@ class TreeAnalyzer:
         
         plt.tight_layout()
         self.plotter._save_plot('cumulative_prediction_shift.png')
+    
+    def compute_tree_level_feature_cooccurrence(self) -> tuple:
+        """
+        Compute symmetric co-occurrence matrix of features appearing in the same tree.
+        
+        Returns:
+            tuple: (co_matrix, feature_names) where co_matrix is a 2D numpy array [F x F]
+        """
+        import numpy as np
+        from itertools import combinations
+        
+        num_features = len(self.feature_names)
+        co_matrix = np.zeros((num_features, num_features), dtype=int)
+        
+        for tree in self.trees:
+            split_indices = tree.get("split_indices", [])
+            features_in_tree = set(self.feature_names[i] for i in split_indices 
+                                  if i < len(self.feature_names))
+            for f1, f2 in combinations(features_in_tree, 2):
+                i, j = self.feature_names.index(f1), self.feature_names.index(f2)
+                co_matrix[i][j] += 1
+                co_matrix[j][i] += 1
+            for f in features_in_tree:
+                i = self.feature_names.index(f)
+                co_matrix[i][i] += 1
+        
+        return co_matrix, self.feature_names
+    
+    def compute_path_level_feature_cooccurrence(self) -> tuple:
+        """
+        Compute symmetric co-occurrence matrix of features appearing on the same decision path.
+        
+        Returns:
+            tuple: (co_matrix, feature_names) where co_matrix is a 2D numpy array [F x F]
+        """
+        import numpy as np
+        from itertools import combinations
+        
+        num_features = len(self.feature_names)
+        co_matrix = np.zeros((num_features, num_features), dtype=int)
+        
+        for tree in self.trees:
+            split_indices = tree.get("split_indices", [])
+            lefts = tree.get("left_children", [])
+            rights = tree.get("right_children", [])
+            
+            def dfs(node, path):
+                if node == -1:
+                    return
+                path.append(split_indices[node])
+                if lefts[node] == -1 and rights[node] == -1:
+                    # Leaf node - process the path
+                    features_in_path = set(self.feature_names[i] for i in path 
+                                          if i < len(self.feature_names))
+                    for f1, f2 in combinations(features_in_path, 2):
+                        i, j = self.feature_names.index(f1), self.feature_names.index(f2)
+                        co_matrix[i][j] += 1
+                        co_matrix[j][i] += 1
+                    for f in features_in_path:
+                        i = self.feature_names.index(f)
+                        co_matrix[i][i] += 1
+                    path.pop()
+                    return
+                dfs(lefts[node], path)
+                dfs(rights[node], path)
+                path.pop()
+            
+            dfs(0, [])
+        
+        return co_matrix, self.feature_names
+    
+    def plot_tree_level_feature_cooccurrence(self) -> None:
+        """Plot heatmap of feature co-occurrence at tree level."""
+        from ..plotting.feature_plots import FeaturePlotter
+        
+        matrix, labels = self.compute_tree_level_feature_cooccurrence()
+        plotter = FeaturePlotter(self.plotter.save_dir)
+        plotter.plot_feature_cooccurrence_heatmap(
+            matrix,
+            labels,
+            title="Same Tree Feature Co-occurrence",
+            filename="feature_cooccurrence_tree_level.png",
+            log_scale=False
+        )
+    
+    def plot_path_level_feature_cooccurrence(self) -> None:
+        """Plot heatmap of feature co-occurrence at path level (log scale)."""
+        from ..plotting.feature_plots import FeaturePlotter
+        
+        matrix, labels = self.compute_path_level_feature_cooccurrence()
+        plotter = FeaturePlotter(self.plotter.save_dir)
+        plotter.plot_feature_cooccurrence_heatmap(
+            matrix,
+            labels,
+            title="Path-Based Feature Co-occurrence",
+            filename="feature_cooccurrence_path_level.png",
+            log_scale=True
+        )
