@@ -141,6 +141,18 @@ Heatmap showing which features are used together in trees.
 ![Feature Usage Heatmap](docs/images/feature_usage_heatmap.png)
 *California Housing dataset - reveals feature co-occurrence patterns*
 
+#### Tree-Level Feature Co-occurrence
+Symmetric matrix showing how often pairs of features appear in the same tree.
+
+![Tree-Level Co-occurrence](docs/images/feature_cooccurrence_tree_level.png)
+*California Housing dataset - darker colors indicate features frequently used together in trees*
+
+#### Path-Level Feature Co-occurrence
+Symmetric matrix showing how often pairs of features appear on the same root-to-leaf decision path (log scale).
+
+![Path-Level Co-occurrence](docs/images/feature_cooccurrence_path_level.png)
+*California Housing dataset - reveals tighter feature interactions along decision paths*
+
 #### Gain Statistics Per Tree
 Box plots showing gain statistics for each tree in the ensemble.
 
