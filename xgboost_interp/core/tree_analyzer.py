@@ -222,11 +222,16 @@ class TreeAnalyzer:
             return
         
         fig, ax = plt.subplots(figsize=(8, 5))
-        ax.hist(depths, bins=range(1, max(depths) + 2), edgecolor='black', alpha=0.7)
+        # Center bins on integer values by shifting bin edges by 0.5
+        min_depth, max_depth = min(depths), max(depths)
+        bin_edges = [i - 0.5 for i in range(min_depth, max_depth + 2)]
+        ax.hist(depths, bins=bin_edges, edgecolor='black', alpha=0.7)
         ax.set_xlabel("Tree Depth")
         ax.set_ylabel("Count")
         ax.set_title("Distribution of Tree Depths")
         ax.grid(axis='y', linestyle='--', alpha=0.5)
+        # Set x-ticks to actual depth values
+        ax.set_xticks(range(min_depth, max_depth + 1))
         
         plt.tight_layout()
         self.plotter._save_plot('tree_depth_histogram.png')
