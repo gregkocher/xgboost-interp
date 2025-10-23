@@ -108,6 +108,7 @@ def analyze_iris_model(model_path, data_df, feature_names):
     # Feature importance (most relevant for small dataset)
     tree_analyzer.plot_feature_importance_combined(top_n=None)
     tree_analyzer.plot_feature_importance_distributions(log_scale=False, top_n=None)
+    tree_analyzer.plot_feature_importance_scatter(top_n=None)
     
     # Tree structure
     tree_analyzer.plot_tree_depth_histogram()
@@ -136,7 +137,7 @@ def analyze_iris_model(model_path, data_df, feature_names):
     # Analyze each class separately
     class_names = ['setosa', 'versicolor', 'virginica']
     
-    for target_class in range(3):
+    for target_class in range(3):  # 3 classes in Iris dataset
         print(f"\n{'='*50}")
         print(f"ANALYZING CLASS {target_class}: {class_names[target_class].upper()}")
         print(f"{'='*50}")

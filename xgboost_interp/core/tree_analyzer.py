@@ -390,3 +390,86 @@ class TreeAnalyzer:
             filename="feature_cooccurrence_path_level.png",
             log_scale=True
         )
+    
+    def plot_feature_importance_scatter(self, top_n: Optional[int] = None, 
+                                       min_size: int = 50, max_size: int = 1000) -> None:
+        """
+        Plot feature importance as a scatter plot: usage (weight) vs gain, sized by cover.
+        
+        Args:
+            top_n: Number of top features to show (None for all)
+            min_size: Minimum bubble size
+            max_size: Maximum bubble size
+        """
+        import matplotlib.pyplot as plt
+        import numpy as np
+        
+        weight_counts, gain_distributions, cover_distributions = (
+            self.plotter._compute_feature_stats(self.trees, self.feature_names)
+        )
+        
+        # Compute statistics for each feature
+        features = []
+        weights = []
+        avg_gains = []
+        avg_covers = []
+        
+        for feat in weight_counts:
+            if feat in gain_distributions and feat in cover_distributions:
+                features.append(feat)
+                weights.append(weight_counts[feat])
+                avg_gains.append(np.mean(gain_distributions[feat]))
+                avg_covers.append(np.mean(cover_distributions[feat]))
+        
+        if not features:
+            print("⚠️ No feature data found")
+            return
+        
+        # Sort by gain and take top_n
+        if top_n:
+            indices = np.argsort(avg_gains)[::-1][:top_n]
+            features = [features[i] for i in indices]
+            weights = [weights[i] for i in indices]
+            avg_gains = [avg_gains[i] for i in indices]
+            avg_covers = [avg_covers[i] for i in indices]
+        
+        # Normalize bubble sizes
+        if avg_covers:
+            min_cover = min(avg_covers)
+            max_cover = max(avg_covers)
+            if max_cover > min_cover:
+                sizes = [min_size + (max_size - min_size) * (c - min_cover) / (max_cover - min_cover) 
+                        for c in avg_covers]
+            else:
+                sizes = [min_size] * len(avg_covers)
+        else:
+            sizes = [min_size] * len(features)
+        
+        # Create scatter plot
+        fig, ax = plt.subplots(figsize=(12, 8))
+        
+        scatter = ax.scatter(weights, avg_gains, s=sizes, alpha=0.7, 
+                           c='lightblue', edgecolors='black', linewidth=1)
+        
+        # Add feature labels (offset slightly above the markers)
+        for i, feat in enumerate(features):
+            ax.annotate(feat, (weights[i], avg_gains[i]), 
+                       xytext=(0, 8), textcoords='offset points',
+                       fontsize=8, alpha=0.8, ha='center', va='bottom')
+        
+        ax.set_xlabel('Feature Usage (Split Count)', fontsize=12)
+        ax.set_ylabel('Average Gain (Loss Reduction)', fontsize=12)
+        ax.set_title('Feature Importance: Usage vs Gain (bubble size = avg cover)', fontsize=14)
+        ax.grid(True, alpha=0.3, linestyle='--')
+        
+        # Add legend for bubble sizes
+        if len(set(sizes)) > 1:
+            legend_sizes = [min_size, (min_size + max_size) / 2, max_size]
+            legend_labels = [f'{min_cover:.1f}', f'{(min_cover + max_cover)/2:.1f}', f'{max_cover:.1f}']
+            legend_handles = [plt.scatter([], [], s=s, c='lightblue', alpha=0.7, edgecolors='black', linewidth=1) 
+                            for s in legend_sizes]
+            legend = ax.legend(legend_handles, legend_labels, 
+                             title='Avg Cover', loc='upper right', framealpha=0.9)
+        
+        plt.tight_layout()
+        self.plotter._save_plot('feature_importance_scatter.png')

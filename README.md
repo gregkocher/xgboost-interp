@@ -155,6 +155,12 @@ Distribution of gain values across all splits for each feature.
 ![Feature Gain Distribution](docs/images/feature_gain_distribution.png)
 *Iris dataset - boxplot showing gain distributions per feature*
 
+#### Feature Importance Scatter Plot
+Scatter plot showing feature usage vs gain, with bubble size representing average cover.
+
+![Feature Importance Scatter](docs/images/feature_importance_scatter.png)
+*California Housing dataset - bubble chart revealing the relationship between feature usage frequency, gain, and cover*
+
 #### Tree Depth Distribution
 Histogram showing the distribution of tree depths in the ensemble.
 
@@ -190,6 +196,12 @@ Box plots showing gain statistics for each tree in the ensemble.
 
 ![Gain Stats Per Tree](docs/images/gain_stats_per_tree.png)
 *California Housing dataset - gain distribution across all 100 trees*
+
+#### Prediction Statistics Per Tree
+Statistical analysis of leaf predictions across the ensemble.
+
+![Prediction Stats Per Tree](docs/images/prediction_stats_per_tree.png)
+*California Housing dataset - mean, median, and standard deviation of predictions per tree*
 
 ### Data-Dependent Analysis
 
