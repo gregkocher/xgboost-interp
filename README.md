@@ -224,22 +224,11 @@ Statistical analysis of leaf predictions across the ensemble.
 ![Prediction Stats Per Tree](docs/images/prediction_stats_per_tree.png)
 *California Housing dataset - mean, median, and standard deviation of predictions per tree*
 
-### Data-Dependent Analysis
-
 #### Prediction Evolution Across Trees
 Shows how predicted probabilities change as more trees are added to the ensemble.
 
 ![Scores Across Trees](docs/images/scores_across_trees.png)
 *Iris dataset - class probability evolution showing model convergence across the ensemble*
-
-#### Interactive Tree Visualization
-Interactive tree structure exploration with hover information for splits and leaf values.
-
-![Tree 1](docs/images/Iris-Tree_1.png)
-*Iris dataset - Tree 1 showing decision structure with split conditions and gains*
-
-![Tree 4](docs/images/Iris-Tree_4.png)
-*Iris dataset - Tree 4 demonstrating deeper splits and leaf predictions*
 
 ## API Reference
 
