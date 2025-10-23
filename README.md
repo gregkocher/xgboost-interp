@@ -143,35 +143,44 @@ plotter.plot_interactive_trees(
 
 ### Tree Structure Analysis
 
-#### Feature Importance
-Combined view of feature importance across weight, gain, and cover metrics.
+#### 1. Cumulative Gain
+Cumulative loss reduction across the tree ensemble.
 
-![Feature Importance](docs/images/feature_importance_combined.png)
-*California Housing dataset - shows MedInc (median income) as the most important feature*
+![Cumulative Gain](docs/images/cumulative_gain.png)
+*California Housing dataset - shows how model improves with each tree*
 
-#### Feature Gain Distribution
-Distribution of gain values across all splits for each feature.
-
-![Feature Gain Distribution](docs/images/feature_gain_distribution.png)
-*Iris dataset - boxplot showing gain distributions per feature*
-
-#### Feature Importance Scatter Plot
+#### 2. Feature Importance Scatter Plot
 Scatter plot showing feature usage vs gain, with bubble size representing average cover.
 
 ![Feature Importance Scatter](docs/images/feature_importance_scatter.png)
 *California Housing dataset - bubble chart revealing the relationship between feature usage frequency, gain, and cover*
 
-#### Tree Depth Distribution
-Histogram showing the distribution of tree depths in the ensemble.
+#### 3. Feature Importance Combined
+Combined view of feature importance across weight, gain, and cover metrics.
 
-![Tree Depth Histogram](docs/images/tree_depth_histogram.png)
-*Iris dataset - most trees have depths between 2-5*
+![Feature Importance](docs/images/feature_importance_combined.png)
+*California Housing dataset - shows MedInc (median income) as the most important feature*
 
-#### Cumulative Gain
-Cumulative loss reduction across the tree ensemble.
+#### 4. Marginal Impact
+Feature-specific prediction changes across all splits in the model.
 
-![Cumulative Gain](docs/images/cumulative_gain.png)
-*California Housing dataset - shows how model improves with each tree*
+![Marginal Impact](docs/images/marginal_impact_petal length (cm).png)
+*Iris dataset - detailed view of how petal length splits affect predictions*
+
+#### 5. Partial Dependence Plot (PDP)
+Shows how predictions change as a feature varies, with ICE curves for individual samples.
+
+![Partial Dependence Plot](docs/images/PDP_MedInc.png)
+*California Housing dataset - MedInc (median income) shows strong positive relationship with house value*
+
+#### Interactive Tree Visualization
+Interactive tree structure exploration with hover information for splits and leaf values.
+
+![Tree 1](docs/images/Iris-Tree_1.png)
+*Iris dataset - Tree 1 showing decision structure with split conditions and gains*
+
+![Tree 4](docs/images/Iris-Tree_4.png)
+*Iris dataset - Tree 4 demonstrating deeper splits and leaf predictions*
 
 #### Feature Usage Heatmap
 Heatmap showing which features are used together in trees.
@@ -191,6 +200,18 @@ Symmetric matrix showing how often pairs of features appear on the same root-to-
 ![Path-Level Co-occurrence](docs/images/feature_cooccurrence_path_level.png)
 *California Housing dataset - reveals tighter feature interactions along decision paths*
 
+#### Feature Gain Distribution
+Distribution of gain values across all splits for each feature.
+
+![Feature Gain Distribution](docs/images/feature_gain_distribution.png)
+*Iris dataset - boxplot showing gain distributions per feature*
+
+#### Tree Depth Distribution
+Histogram showing the distribution of tree depths in the ensemble.
+
+![Tree Depth Histogram](docs/images/tree_depth_histogram.png)
+*Iris dataset - most trees have depths between 2-5*
+
 #### Gain Statistics Per Tree
 Box plots showing gain statistics for each tree in the ensemble.
 
@@ -204,18 +225,6 @@ Statistical analysis of leaf predictions across the ensemble.
 *California Housing dataset - mean, median, and standard deviation of predictions per tree*
 
 ### Data-Dependent Analysis
-
-#### Partial Dependence Plot (PDP)
-Shows how predictions change as a feature varies, with ICE curves for individual samples.
-
-![Partial Dependence Plot](docs/images/PDP_MedInc.png)
-*California Housing dataset - MedInc (median income) shows strong positive relationship with house value*
-
-#### Marginal Impact
-Feature-specific prediction changes across all splits in the model.
-
-![Marginal Impact](docs/images/marginal_impact_petal length (cm).png)
-*Iris dataset - detailed view of how petal length splits affect predictions*
 
 #### Prediction Evolution Across Trees
 Shows how predicted probabilities change as more trees are added to the ensemble.
