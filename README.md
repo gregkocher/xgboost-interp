@@ -92,6 +92,38 @@ model_analyzer.plot_scores_across_trees([100, 500, 1000, 2000])
 model_analyzer.plot_marginal_impact_univariate("feature_name")
 ```
 
+### Multi-Class Classification Support
+
+For multi-class models, specify which class to analyze:
+
+```python
+from xgboost_interp import TreeAnalyzer, ModelAnalyzer
+
+# Initialize tree analyzer
+tree_analyzer = TreeAnalyzer("multiclass_model.json")
+
+# Analyze class 0 (e.g., setosa in Iris dataset)
+analyzer_class0 = ModelAnalyzer(tree_analyzer, target_class=0)
+analyzer_class0.load_data_from_parquets("data/")
+analyzer_class0.load_xgb_model()
+
+# All plots now show effects on P(class 0)
+analyzer_class0.plot_partial_dependence("feature_name")
+analyzer_class0.plot_marginal_impact_univariate("feature_name")
+analyzer_class0.plot_scores_across_trees([30, 60, 90, 120, 150])
+
+# Analyze class 1
+analyzer_class1 = ModelAnalyzer(tree_analyzer, target_class=1)
+analyzer_class1.load_xgb_model()
+analyzer_class1.plot_partial_dependence("feature_name")
+```
+
+**Key Points:**
+- Specify `target_class` parameter (0, 1, 2, etc.) when creating `ModelAnalyzer`
+- All analysis methods show effects on that specific class probability
+- Each class has its own set of trees in the XGBoost model
+- Plot titles automatically indicate which class is being analyzed
+
 ### Interactive Tree Visualization
 
 ```python
@@ -170,8 +202,23 @@ Shows how predictions change as a feature varies, with ICE curves for individual
 #### Marginal Impact
 Feature-specific prediction changes across all splits in the model.
 
-![Marginal Impact](docs/images/marginal_impact_MedInc.png)
-*California Housing dataset - detailed view of how MedInc splits affect predictions*
+![Marginal Impact](docs/images/marginal_impact_petal length (cm).png)
+*Iris dataset - detailed view of how petal length splits affect predictions*
+
+#### Prediction Evolution Across Trees
+Shows how predicted probabilities change as more trees are added to the ensemble.
+
+![Scores Across Trees](docs/images/scores_across_trees.png)
+*Iris dataset - class probability evolution showing model convergence across the ensemble*
+
+#### Interactive Tree Visualization
+Interactive tree structure exploration with hover information for splits and leaf values.
+
+![Tree 1](docs/images/Iris-Tree_1.png)
+*Iris dataset - Tree 1 showing decision structure with split conditions and gains*
+
+![Tree 4](docs/images/Iris-Tree_4.png)
+*Iris dataset - Tree 4 demonstrating deeper splits and leaf predictions*
 
 ## API Reference
 

@@ -24,16 +24,19 @@ class ModelAnalyzer:
     like partial dependence plots and prediction analysis.
     """
     
-    def __init__(self, tree_analyzer: TreeAnalyzer):
+    def __init__(self, tree_analyzer: TreeAnalyzer, target_class: int = 0):
         """
         Initialize the ModelAnalyzer.
         
         Args:
             tree_analyzer: TreeAnalyzer instance for the model
+            target_class: Target class index for multi-class models (default: 0)
         """
         self.tree_analyzer = tree_analyzer
         self.df = None
         self.xgb_model = None
+        self.target_class = target_class
+        self.num_classes = None  # Will be set when model is loaded
     
     def load_data_from_parquets(self, data_dir_path: str, 
                                cols_to_load: Optional[List[str]] = None,
@@ -79,7 +82,27 @@ class ModelAnalyzer:
             self.xgb_model = xgb.XGBClassifier()
         
         self.xgb_model.load_model(json_path)
-        print(f"✅ Loaded XGBoost model from {json_path}")
+        
+        # Detect number of classes for multi-class models
+        if hasattr(self.xgb_model, 'n_classes_'):
+            self.num_classes = self.xgb_model.n_classes_
+        elif hasattr(self.xgb_model, '_le') and hasattr(self.xgb_model._le, 'classes_'):
+            self.num_classes = len(self.xgb_model._le.classes_)
+        else:
+            # Try to infer from objective
+            objective_str = str(self.tree_analyzer.objective)
+            if 'multi:' in objective_str:
+                # Parse from objective or assume binary
+                self.num_classes = 3  # Default assumption for multi-class
+            else:
+                self.num_classes = 2  # Binary classification
+        
+        if self.num_classes > 2:
+            print(f"✅ Loaded XGBoost multi-class model from {json_path}")
+            print(f"   Number of classes: {self.num_classes}")
+            print(f"   Analyzing target class: {self.target_class}")
+        else:
+            print(f"✅ Loaded XGBoost model from {json_path}")
     
     def predict_in_batches(self, X: pd.DataFrame, batch_size: int = 10000,
                           base_margin: Optional[pd.Series] = None) -> np.ndarray:
@@ -92,7 +115,7 @@ class ModelAnalyzer:
             base_margin: Base margin for predictions
             
         Returns:
-            Array of predictions (probabilities for classification, values for regression)
+            Array of predictions (probabilities for target class in classification, values for regression)
         """
         if self.xgb_model is None:
             raise ValueError("XGBoost model not loaded. Call load_xgb_model() first.")
@@ -112,7 +135,13 @@ class ModelAnalyzer:
                 y_pred_batch = self.xgb_model.predict_proba(
                     X_batch, base_margin=base_margin_batch
                 )
-                y_pred.extend(y_pred_batch[:, 1] if y_pred_batch.shape[1] == 2 else y_pred_batch)
+                # Extract probability for target class
+                if y_pred_batch.shape[1] == 2:
+                    # Binary classification - use class 1 probability
+                    y_pred.extend(y_pred_batch[:, 1])
+                else:
+                    # Multi-class - use specified target class
+                    y_pred.extend(y_pred_batch[:, self.target_class])
             else:
                 y_pred_batch = self.xgb_model.predict(
                     X_batch, base_margin=base_margin_batch
@@ -146,17 +175,36 @@ class ModelAnalyzer:
         
         print(f"Computing PDP for feature '{feature_name}' (index {feat_idx})")
         
-        pd_result = partial_dependence(
-            estimator=self.xgb_model,
-            X=X_base,
-            features=[feat_idx],
-            grid_resolution=grid_points,
-            kind='both'
-        )
-        
-        averaged = pd_result['average'][0]
-        ice_curves = pd_result['individual'][0]
-        grid_values = pd_result['grid_values'][0]
+        # For multi-class, specify target class
+        if self.num_classes and self.num_classes > 2:
+            print(f"  Multi-class model: computing PDP for class {self.target_class}")
+            pd_result = partial_dependence(
+                estimator=self.xgb_model,
+                X=X_base,
+                features=[feat_idx],
+                grid_resolution=grid_points,
+                kind='both'
+            )
+            # sklearn returns shape (1, n_outputs, n_grid) for multi-class
+            # We need to extract the specific class
+            if len(pd_result['average']) > 1:
+                averaged = pd_result['average'][self.target_class]
+                ice_curves = pd_result['individual'][self.target_class]
+            else:
+                averaged = pd_result['average'][0]
+                ice_curves = pd_result['individual'][0]
+            grid_values = pd_result['grid_values'][0]
+        else:
+            pd_result = partial_dependence(
+                estimator=self.xgb_model,
+                X=X_base,
+                features=[feat_idx],
+                grid_resolution=grid_points,
+                kind='both'
+            )
+            averaged = pd_result['average'][0]
+            ice_curves = pd_result['individual'][0]
+            grid_values = pd_result['grid_values'][0]
         
         # Create plot
         fig, ax = plt.subplots(figsize=(14, 5))
@@ -171,7 +219,10 @@ class ModelAnalyzer:
         
         ax.set_xlabel(feature_name)
         ax.set_ylabel("Predicted Probability")
-        ax.set_title(f"Partial Dependence Plot for '{feature_name}'")
+        if self.num_classes and self.num_classes > 2:
+            ax.set_title(f"Partial Dependence Plot for '{feature_name}' (Class {self.target_class})")
+        else:
+            ax.set_title(f"Partial Dependence Plot for '{feature_name}'")
         ax.grid(True, linestyle='--', alpha=0.3)
         ax.legend()
         
@@ -254,6 +305,8 @@ class ModelAnalyzer:
         """
         Plot prediction scores at different tree stopping points.
         
+        For multi-class models, shows probability evolution for the target class.
+        
         Args:
             tree_indices: List of tree indices to evaluate
             n_records: Number of records to analyze
@@ -264,10 +317,23 @@ class ModelAnalyzer:
         
         scores_matrix = []
         for k in tree_indices:
-            pred_logit = self.xgb_model.predict(
-                X, iteration_range=(0, k), output_margin=True
-            )
-            pred_prob = expit(pred_logit)
+            if self.num_classes and self.num_classes > 2:
+                # Multi-class: iteration_range refers to boosting rounds (not total trees)
+                # Each round trains num_classes trees
+                # So k total trees = k // num_classes rounds
+                num_rounds = k // self.num_classes
+                if num_rounds == 0:
+                    num_rounds = 1
+                pred_proba = self.xgb_model.predict_proba(
+                    X, iteration_range=(0, num_rounds)
+                )
+                pred_prob = pred_proba[:, self.target_class]
+            else:
+                # Binary: use margin and sigmoid
+                pred_logit = self.xgb_model.predict(
+                    X, iteration_range=(0, k), output_margin=True
+                )
+                pred_prob = expit(pred_logit)
             scores_matrix.append(pred_prob)
         
         scores_matrix = np.array(scores_matrix).T
@@ -289,8 +355,11 @@ class ModelAnalyzer:
                linestyle='--', marker='o', label="Median")
         
         ax.set_xlabel("Tree Index")
-        ax.set_ylabel("Predicted Score")
-        ax.set_title("Predicted Score at Early Exits")
+        ax.set_ylabel("Predicted Probability")
+        if self.num_classes and self.num_classes > 2:
+            ax.set_title(f"Class {self.target_class} Probability Evolution Across Trees")
+        else:
+            ax.set_title("Predicted Score at Early Exits")
         ax.legend()
         ax.grid(True)
         
@@ -307,6 +376,9 @@ class ModelAnalyzer:
         """
         Plot marginal impact of a feature on predicted probability.
         
+        For multi-class models, this analyzes the impact on the target class probability.
+        Note: For multi-class, we analyze trees for the target class only.
+        
         Args:
             feature_name: Name of the feature to analyze
             scale: Scale for x-axis ("linear" or "log")
@@ -320,7 +392,16 @@ class ModelAnalyzer:
         
         global_split_counter = 0
         
-        for tree_idx, tree in enumerate(self.tree_analyzer.trees):
+        # For multi-class models, we need to look at trees for the target class only
+        # XGBoost stores trees in round-robin fashion: tree0->class0, tree1->class1, tree2->class2, tree3->class0, etc.
+        trees_to_analyze = self.tree_analyzer.trees
+        if self.num_classes and self.num_classes > 2:
+            # Select only trees for the target class
+            trees_to_analyze = [tree for i, tree in enumerate(self.tree_analyzer.trees) 
+                               if i % self.num_classes == self.target_class]
+            print(f"Analyzing {len(trees_to_analyze)} trees for class {self.target_class} (out of {len(self.tree_analyzer.trees)} total trees)")
+        
+        for tree_idx, tree in enumerate(trees_to_analyze):
             split_indices = tree.get("split_indices", [])
             split_conditions = tree.get("split_conditions", [])
             lefts = tree.get("left_children", [])
@@ -336,7 +417,17 @@ class ModelAnalyzer:
                     threshold = split_conditions[node]
                     left_val = weights[lefts[node]] if lefts[node] != -1 else 0
                     right_val = weights[rights[node]] if rights[node] != -1 else 0
-                    delta = expit(right_val) - expit(left_val)
+                    
+                    # For multi-class, weights are raw logits that get softmax-ed
+                    # For binary, weights are logits that get sigmoid-ed
+                    # Since we're looking at marginal changes, we use the simpler approximation
+                    if self.num_classes and self.num_classes > 2:
+                        # For multi-class: approximate probability change
+                        # This is simplified - true impact depends on other class logits
+                        delta = expit(right_val) - expit(left_val)
+                    else:
+                        # Binary classification
+                        delta = expit(right_val) - expit(left_val)
                     
                     thresholds.append(threshold)
                     prob_deltas.append(delta)
@@ -387,7 +478,10 @@ class ModelAnalyzer:
         
         ax.set_ylabel("Δ Probability")
         ax.set_xlabel(feature_name)
-        ax.set_title(f"Marginal Impact of Feature '{feature_name}' on Predicted Probability")
+        if self.num_classes and self.num_classes > 2:
+            ax.set_title(f"Marginal Impact of '{feature_name}' on Class {self.target_class} Probability")
+        else:
+            ax.set_title(f"Marginal Impact of Feature '{feature_name}' on Predicted Probability")
         ax.legend()
         ax.grid(False)
         

@@ -113,39 +113,74 @@ def analyze_iris_model(model_path, data_df, feature_names):
     tree_analyzer.plot_tree_depth_histogram()
     tree_analyzer.plot_cumulative_gain()
     
-    # Model analysis with data
-    model_analyzer = ModelAnalyzer(tree_analyzer)
+    # Interactive tree visualization (first few trees)
+    print("\nGenerating interactive tree visualization...")
+    try:
+        from xgboost_interp.plotting import InteractivePlotter
+        interactive_plotter = InteractivePlotter(tree_analyzer.plotter.save_dir)
+        interactive_plotter.plot_interactive_trees(
+            tree_analyzer.trees, tree_analyzer.feature_names, 
+            top_k=5, combined=False
+        )
+        print("✅ Generated interactive tree plots (opened in browser)")
+    except ImportError:
+        print("⚠️ Plotly not available for interactive plots")
+    except Exception as e:
+        print(f"⚠️ Could not generate interactive plots: {e}")
     
     # Save data for analysis
     data_dir = "iris_data"
     os.makedirs(data_dir, exist_ok=True)
     data_df.to_parquet(f"{data_dir}/iris_data.parquet", index=False)
     
-    # Load data and model
-    model_analyzer.load_data_from_parquets(data_dir, num_files_to_read=1)
-    model_analyzer.load_xgb_model(model_path)
+    # Analyze each class separately
+    class_names = ['setosa', 'versicolor', 'virginica']
     
-    # Partial dependence plots for all features
-    print("\nGenerating partial dependence plots...")
-    for feature in feature_names:
+    for target_class in range(3):
+        print(f"\n{'='*50}")
+        print(f"ANALYZING CLASS {target_class}: {class_names[target_class].upper()}")
+        print(f"{'='*50}")
+        
+        # Model analysis with data - specify target class
+        model_analyzer = ModelAnalyzer(tree_analyzer, target_class=target_class)
+        
+        # Load data and model
+        model_analyzer.load_data_from_parquets(data_dir, num_files_to_read=1)
+        model_analyzer.load_xgb_model(model_path)
+        
+        # Partial dependence plots for all features
+        print(f"\nGenerating partial dependence plots for class {target_class} ({class_names[target_class]})...")
+        for feature in feature_names:
+            try:
+                model_analyzer.plot_partial_dependence(
+                    feature_name=feature,
+                    grid_points=30,
+                    n_curves=150  # All samples
+                )
+                print(f"✅ Generated PDP for {feature}")
+            except Exception as e:
+                print(f"⚠️ Could not generate PDP for {feature}: {e}")
+        
+        # Marginal impact for all features (small dataset)
+        print(f"\nGenerating marginal impact analysis for class {target_class} ({class_names[target_class]})...")
+        for feature in feature_names:
+            try:
+                model_analyzer.plot_marginal_impact_univariate(feature, scale="linear")
+                print(f"✅ Generated marginal impact for {feature}")
+            except Exception as e:
+                print(f"⚠️ Could not generate marginal impact for {feature}: {e}")
+        
+        # Prediction evolution across trees
+        print(f"\nGenerating prediction evolution plot for class {target_class} ({class_names[target_class]})...")
         try:
-            model_analyzer.plot_partial_dependence(
-                feature_name=feature,
-                grid_points=30,
-                n_curves=150  # All samples
+            # For iris: 150 total trees = 50 rounds x 3 classes
+            model_analyzer.plot_scores_across_trees(
+                tree_indices=[30, 60, 90, 120, 150],
+                n_records=150
             )
-            print(f"✅ Generated PDP for {feature}")
+            print(f"✅ Generated scores across trees plot")
         except Exception as e:
-            print(f"⚠️ Could not generate PDP for {feature}: {e}")
-    
-    # Marginal impact for all features (small dataset)
-    print("\nGenerating marginal impact analysis...")
-    for feature in feature_names:
-        try:
-            model_analyzer.plot_marginal_impact_univariate(feature, scale="linear")
-            print(f"✅ Generated marginal impact for {feature}")
-        except Exception as e:
-            print(f"⚠️ Could not generate marginal impact for {feature}: {e}")
+            print(f"⚠️ Could not generate scores across trees: {e}")
     
     print(f"\nAnalysis complete! Plots saved to: {tree_analyzer.plotter.save_dir}")
 
