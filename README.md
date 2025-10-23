@@ -164,7 +164,7 @@ Combined view of feature importance across weight, gain, and cover metrics.
 #### 4. Marginal Impact
 Feature-specific prediction changes across all splits in the model.
 
-![Marginal Impact](docs/images/marginal_impact_petal length (cm).png)
+![Marginal Impact](docs/images/marginal_impact_petal_length.png)
 *Iris dataset - detailed view of how petal length splits affect predictions*
 
 #### 5. Partial Dependence Plot (PDP)
