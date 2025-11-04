@@ -303,9 +303,13 @@ class ModelAnalyzer:
     def plot_scores_across_trees(self, tree_indices: List[int], 
                                 n_records: int = 1000) -> None:
         """
-        Plot prediction scores at different tree stopping points.
+        Plot prediction probability evolution at different tree stopping points.
+        
+        Shows how predicted probabilities change as more trees are added to the ensemble.
+        Works for both binary and multi-class classification.
         
         For multi-class models, shows probability evolution for the target class.
+        For binary models, shows probability evolution for the positive class.
         
         Args:
             tree_indices: List of tree indices to evaluate
@@ -359,7 +363,8 @@ class ModelAnalyzer:
         if self.num_classes and self.num_classes > 2:
             ax.set_title(f"Class {self.target_class} Probability Evolution Across Trees")
         else:
-            ax.set_title("Predicted Score at Early Exits")
+            # Binary classification - show probability evolution too
+            ax.set_title("Probability Evolution Across Trees (Binary Classification)")
         ax.legend()
         ax.grid(True)
         

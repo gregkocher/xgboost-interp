@@ -1,0 +1,538 @@
+"""
+Complete analysis example for user-provided XGBoost model.
+
+This example demonstrates how to run ALL available analysis and plotting functions
+on your own pre-trained XGBoost model saved as JSON.
+
+Usage:
+    python user_model_complete_analysis.py /path/to/your/model.json [/path/to/data/]
+
+Requirements:
+    - XGBoost model saved as JSON file
+    - (Optional) Data directory with parquet files for data-dependent analysis
+"""
+
+import os
+import sys
+import argparse
+
+# Add the package to path for local development
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from xgboost_interp import TreeAnalyzer, ModelAnalyzer
+from xgboost_interp.plotting import FeaturePlotter, TreePlotter, InteractivePlotter
+
+
+def run_all_tree_level_analysis(tree_analyzer):
+    """
+    Run ALL tree-level analysis functions (no data required).
+    
+    This includes:
+    - Model summary
+    - Feature importance plots (multiple types)
+    - Tree structure analysis
+    - Feature co-occurrence analysis
+    - Advanced tree statistics
+    - Marginal impact analysis (tree-level)
+    """
+    print("\n" + "="*70)
+    print("PART 1: TREE-LEVEL ANALYSIS (No Data Required)")
+    print("="*70)
+    print("Note: Marginal impact plots are included here - they only need tree structure!")
+    
+    # 1. Print model summary
+    print("\n[1/15] Printing model summary...")
+    tree_analyzer.print_model_summary()
+    
+    # 2. Combined feature importance (weight, gain, cover)
+    print("\n[2/15] Generating combined feature importance plot...")
+    try:
+        tree_analyzer.plot_feature_importance_combined(top_n=20)
+        print("✅ Generated: feature_importance_combined.png")
+    except Exception as e:
+        print(f"⚠️ Error: {e}")
+    
+    # 3. Feature importance distributions (boxplots)
+    print("\n[3/15] Generating feature importance distributions...")
+    try:
+        tree_analyzer.plot_feature_importance_distributions(log_scale=True, top_n=20)
+        print("✅ Generated: feature_weight.png")
+        print("✅ Generated: feature_gain_distribution.png")
+        print("✅ Generated: feature_cover_distribution.png")
+    except Exception as e:
+        print(f"⚠️ Error: {e}")
+    
+    # 4. Feature importance scatter plot
+    print("\n[4/15] Generating feature importance scatter plot...")
+    try:
+        tree_analyzer.plot_feature_importance_scatter(top_n=30)
+        print("✅ Generated: feature_importance_scatter.png")
+    except Exception as e:
+        print(f"⚠️ Error: {e}")
+    
+    # 5. Tree depth histogram
+    print("\n[5/15] Generating tree depth histogram...")
+    try:
+        tree_analyzer.plot_tree_depth_histogram()
+        print("✅ Generated: tree_depth_histogram.png")
+    except Exception as e:
+        print(f"⚠️ Error: {e}")
+    
+    # 6. Cumulative gain
+    print("\n[6/15] Generating cumulative gain plot...")
+    try:
+        tree_analyzer.plot_cumulative_gain()
+        print("✅ Generated: cumulative_gain.png")
+    except Exception as e:
+        print(f"⚠️ Error: {e}")
+    
+    # 7. Cumulative prediction shift
+    print("\n[7/15] Generating cumulative prediction shift plot...")
+    try:
+        tree_analyzer.plot_cumulative_prediction_shift()
+        print("✅ Generated: cumulative_prediction_shift.png")
+    except Exception as e:
+        print(f"⚠️ Error: {e}")
+    
+    # 8. Tree-level feature co-occurrence
+    print("\n[8/15] Generating tree-level feature co-occurrence heatmap...")
+    try:
+        tree_analyzer.plot_tree_level_feature_cooccurrence()
+        print("✅ Generated: feature_cooccurrence_tree_level.png")
+    except Exception as e:
+        print(f"⚠️ Error: {e}")
+    
+    # 9. Path-level feature co-occurrence
+    print("\n[9/15] Generating path-level feature co-occurrence heatmap...")
+    try:
+        tree_analyzer.plot_path_level_feature_cooccurrence()
+        print("✅ Generated: feature_cooccurrence_path_level.png")
+    except Exception as e:
+        print(f"⚠️ Error: {e}")
+    
+    # Initialize advanced plotters
+    feature_plotter = FeaturePlotter(tree_analyzer.plotter.save_dir)
+    tree_plotter = TreePlotter(tree_analyzer.plotter.save_dir)
+    
+    # 10. Feature usage heatmap
+    print("\n[10/15] Generating feature usage heatmap...")
+    try:
+        feature_plotter.plot_feature_usage_heatmap(
+            tree_analyzer.trees, 
+            tree_analyzer.feature_names, 
+            log_scale=True
+        )
+        print("✅ Generated: feature_usage_heatmap.png")
+    except Exception as e:
+        print(f"⚠️ Error: {e}")
+    
+    # 11. Split depth per feature
+    print("\n[11/15] Generating split depth per feature plot...")
+    try:
+        feature_plotter.plot_split_depth_per_feature(
+            tree_analyzer.trees, 
+            tree_analyzer.feature_names
+        )
+        print("✅ Generated: split_depth_per_feature.png")
+    except Exception as e:
+        print(f"⚠️ Error: {e}")
+    
+    # 12. Feature split impact
+    print("\n[12/15] Generating feature split impact plot...")
+    try:
+        feature_plotter.plot_feature_split_impact(
+            tree_analyzer.trees, 
+            tree_analyzer.feature_names, 
+            log_scale=False
+        )
+        print("✅ Generated: feature_split_impact.png")
+    except Exception as e:
+        print(f"⚠️ Error: {e}")
+    
+    # 13. Prediction and gain statistics
+    print("\n[13/15] Generating prediction and gain statistics plots...")
+    try:
+        tree_plotter.plot_prediction_and_gain_stats(
+            tree_analyzer.trees, 
+            log_scale=False
+        )
+        print("✅ Generated: prediction_stats_per_tree.png")
+        print("✅ Generated: prediction_stats_by_depth.png")
+        print("✅ Generated: gain_stats_per_tree.png")
+        print("✅ Generated: gain_stats_by_depth.png")
+    except Exception as e:
+        print(f"⚠️ Error: {e}")
+    
+    # 14. Gain heatmap
+    print("\n[14/15] Generating gain heatmap...")
+    try:
+        tree_plotter.plot_gain_heatmap(
+            tree_analyzer.trees, 
+            tree_analyzer.feature_names
+        )
+        print("✅ Generated: gain_heatmap.png")
+    except Exception as e:
+        print(f"⚠️ Error: {e}")
+    
+    # 15. Marginal impact analysis (NO DATA REQUIRED)
+    print("\n[15/16] Generating marginal impact plots for all features...")
+    print("(This analyzes tree structure only - no data needed)")
+    
+    # Create a temporary ModelAnalyzer just for marginal impact (doesn't need data loaded)
+    from xgboost_interp import ModelAnalyzer
+    temp_analyzer = ModelAnalyzer(tree_analyzer, target_class=0)
+    
+    marginal_success_count = 0
+    feature_names = tree_analyzer.feature_names
+    
+    for i, feature in enumerate(feature_names, 1):
+        try:
+            print(f"  [{i}/{len(feature_names)}] Computing marginal impact for '{feature}'...")
+            temp_analyzer.plot_marginal_impact_univariate(feature, scale="linear")
+            marginal_success_count += 1
+            print(f"  ✅ Generated: marginal_impact_{feature}.png")
+        except Exception as e:
+            print(f"  ⚠️ Failed for {feature}: {e}")
+    
+    print(f"\n✅ Generated {marginal_success_count}/{len(feature_names)} marginal impact plots")
+    
+    # 16. Interactive tree visualization
+    print("\n[16/16] Generating interactive tree visualizations...")
+    try:
+        interactive_plotter = InteractivePlotter(tree_analyzer.plotter.save_dir)
+        # Plot first 5 trees individually
+        num_trees_to_plot = min(5, len(tree_analyzer.trees))
+        interactive_plotter.plot_interactive_trees(
+            tree_analyzer.trees[:num_trees_to_plot], 
+            tree_analyzer.feature_names, 
+            top_k=num_trees_to_plot, 
+            combined=False
+        )
+        print(f"✅ Generated: {num_trees_to_plot} interactive tree PNG files")
+    except ImportError:
+        print("⚠️ Plotly not installed - skipping interactive plots")
+        print("   Install with: pip install plotly networkx")
+    except Exception as e:
+        print(f"⚠️ Error: {e}")
+    
+    print("\n" + "="*70)
+    print("✅ PART 1 COMPLETE - All tree-level analysis finished!")
+    print("="*70)
+
+
+def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, target_class=None):
+    """
+    Run ALL data-dependent analysis functions.
+    
+    This includes:
+    - Partial dependence plots (PDP with ICE curves)
+    - Prediction evolution analysis (probability across trees)
+    - ALE plots (if pyALE installed)
+    
+    Note: Marginal impact analysis is in Part 1 (tree-level) - it doesn't need data!
+    
+    Args:
+        model_analyzer: ModelAnalyzer instance
+        tree_analyzer: TreeAnalyzer instance
+        data_dir: Directory containing parquet files
+        target_class: Target class for multi-class models (None for binary/regression)
+    """
+    print("\n" + "="*70)
+    print("PART 2: DATA-DEPENDENT ANALYSIS (Requires Data)")
+    print("="*70)
+    
+    # Load data
+    print("\n[1/5] Loading data from parquet files...")
+    try:
+        model_analyzer.load_data_from_parquets(data_dir, num_files_to_read=1000)
+        print(f"✅ Loaded data: {len(model_analyzer.df)} records")
+    except Exception as e:
+        print(f"❌ Failed to load data: {e}")
+        return False
+    
+    # Load XGBoost model
+    print("\n[2/5] Loading XGBoost model for predictions...")
+    try:
+        model_analyzer.load_xgb_model()
+        print("✅ Model loaded successfully")
+    except Exception as e:
+        print(f"❌ Failed to load model: {e}")
+        return False
+    
+    # Partial Dependence Plots for all features
+    print("\n[3/4] Generating Partial Dependence Plots (PDPs) for all features...")
+    print("This may take a few minutes depending on dataset size...")
+    
+    feature_names = tree_analyzer.feature_names
+    pdp_success_count = 0
+    
+    for i, feature in enumerate(feature_names, 1):
+        try:
+            print(f"  [{i}/{len(feature_names)}] Computing PDP for '{feature}'...")
+            model_analyzer.plot_partial_dependence(
+                feature_name=feature,
+                grid_points=50,
+                n_curves=min(1000, len(model_analyzer.df))
+            )
+            pdp_success_count += 1
+            print(f"  ✅ Generated: PDP_{feature}.png")
+        except Exception as e:
+            print(f"  ⚠️ Failed for {feature}: {e}")
+    
+    print(f"\n✅ Generated {pdp_success_count}/{len(feature_names)} PDP plots")
+    
+    # Prediction evolution across trees
+    print("\n[4/4] Generating prediction evolution analysis...")
+    try:
+        # Create a reasonable set of tree indices to analyze
+        num_trees = tree_analyzer.num_trees_total
+        if num_trees <= 10:
+            tree_indices = list(range(1, num_trees + 1))
+        elif num_trees <= 50:
+            tree_indices = list(range(5, num_trees + 1, 5))
+        elif num_trees <= 200:
+            tree_indices = list(range(10, num_trees + 1, 10))
+        else:
+            # For very large ensembles, sample more sparsely
+            step = max(20, num_trees // 10)
+            tree_indices = list(range(step, num_trees + 1, step))
+        
+        print(f"  Analyzing predictions at tree indices: {tree_indices}")
+        model_analyzer.plot_scores_across_trees(
+            tree_indices=tree_indices,
+            n_records=min(1000, len(model_analyzer.df))
+        )
+        print("  ✅ Generated: scores_across_trees.png")
+    except Exception as e:
+        print(f"  ⚠️ Failed: {e}")
+    
+    # ALE plots (optional - requires pyALE)
+    print("\n[BONUS] Attempting to generate ALE plots (requires pyALE)...")
+    try:
+        import pyALE
+        print("  pyALE detected! Generating ALE plots for top 5 features...")
+        
+        # Get top 5 features by importance
+        from collections import Counter
+        weight_counts = Counter()
+        for tree in tree_analyzer.trees:
+            for split_idx in tree.get("split_indices", []):
+                if split_idx < len(feature_names):
+                    weight_counts[feature_names[split_idx]] += 1
+        
+        top_features = [feat for feat, _ in weight_counts.most_common(5)]
+        
+        for i, feature in enumerate(top_features, 1):
+            try:
+                print(f"  [{i}/{len(top_features)}] Computing ALE for '{feature}'...")
+                model_analyzer.plot_ale(
+                    feature_name=feature,
+                    grid_size=50,
+                    include_CI=True,
+                    n_curves=min(10000, len(model_analyzer.df))
+                )
+                print(f"  ✅ Generated: ALE_{feature}.png")
+            except Exception as e:
+                print(f"  ⚠️ Failed for {feature}: {e}")
+        
+    except ImportError:
+        print("  ⚠️ pyALE not installed - skipping ALE plots")
+        print("     Install with: pip install pyALE")
+    
+    print("\n" + "="*70)
+    print("✅ PART 2 COMPLETE - All data-dependent analysis finished!")
+    print("="*70)
+    
+    return True
+
+
+def generate_summary_report(tree_analyzer, data_analysis_done):
+    """Generate a summary report of all generated files."""
+    print("\n" + "="*70)
+    print("📊 ANALYSIS SUMMARY REPORT")
+    print("="*70)
+    
+    output_dir = tree_analyzer.plotter.save_dir
+    
+    if os.path.exists(output_dir):
+        files = os.listdir(output_dir)
+        png_files = sorted([f for f in files if f.endswith('.png')])
+        
+        print(f"\n📁 Output Directory: {output_dir}")
+        print(f"📈 Total Plots Generated: {len(png_files)}")
+        
+        # Categorize plots
+        tree_plots = [f for f in png_files if any(x in f for x in ['tree', 'depth', 'gain', 'cumulative'])]
+        feature_plots = [f for f in png_files if 'feature' in f or 'split' in f or 'cooccurrence' in f]
+        pdp_plots = [f for f in png_files if 'PDP_' in f]
+        marginal_plots = [f for f in png_files if 'marginal_impact' in f]
+        ale_plots = [f for f in png_files if 'ALE_' in f]
+        other_plots = [f for f in png_files if f not in tree_plots + feature_plots + pdp_plots + marginal_plots + ale_plots]
+        
+        print(f"\n📊 Plot Categories:")
+        print(f"  🌳 Tree Structure Plots: {len(tree_plots)}")
+        print(f"  🔧 Feature Analysis Plots: {len(feature_plots)}")
+        if data_analysis_done:
+            print(f"  📉 Partial Dependence Plots: {len(pdp_plots)}")
+            print(f"  📊 Marginal Impact Plots: {len(marginal_plots)}")
+            if ale_plots:
+                print(f"  📈 ALE Plots: {len(ale_plots)}")
+            print(f"  📋 Other Plots: {len(other_plots)}")
+        
+        print(f"\n📄 All Generated Files:")
+        for f in png_files:
+            print(f"  ✅ {f}")
+    else:
+        print(f"\n⚠️ Output directory not found: {output_dir}")
+    
+    print("\n" + "="*70)
+
+
+def main():
+    """Main function to run complete analysis."""
+    parser = argparse.ArgumentParser(
+        description="Complete XGBoost model analysis with all available functions",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Tree-level analysis only (no data needed)
+  python user_model_complete_analysis.py model.json
+  
+  # Complete analysis with data
+  python user_model_complete_analysis.py model.json data_directory/
+  
+  # Multi-class model - analyze specific class
+  python user_model_complete_analysis.py model.json data_directory/ --target-class 0
+
+For multi-class models, you can run this script multiple times with different
+--target-class values to analyze each class separately.
+        """
+    )
+    
+    parser.add_argument(
+        'model_path',
+        help='Path to XGBoost model JSON file'
+    )
+    
+    parser.add_argument(
+        'data_dir',
+        nargs='?',
+        default=None,
+        help='(Optional) Directory containing parquet files for data-dependent analysis'
+    )
+    
+    parser.add_argument(
+        '--target-class',
+        type=int,
+        default=None,
+        help='Target class index for multi-class models (default: None for binary/regression, 0 for multi-class)'
+    )
+    
+    args = parser.parse_args()
+    
+    # Validate inputs
+    if not os.path.exists(args.model_path):
+        print(f"❌ Error: Model file not found: {args.model_path}")
+        sys.exit(1)
+    
+    if args.data_dir and not os.path.exists(args.data_dir):
+        print(f"❌ Error: Data directory not found: {args.data_dir}")
+        sys.exit(1)
+    
+    # Print header
+    print("\n" + "="*70)
+    print("XGBoost Model Complete Analysis")
+    print("="*70)
+    print(f"Model: {args.model_path}")
+    if args.data_dir:
+        print(f"Data:  {args.data_dir}")
+    else:
+        print(f"Data:  None (tree-level analysis only)")
+    if args.target_class is not None:
+        print(f"Target Class: {args.target_class}")
+    print("="*70)
+    
+    # Initialize TreeAnalyzer
+    print("\n🔧 Initializing TreeAnalyzer...")
+    try:
+        tree_analyzer = TreeAnalyzer(args.model_path)
+        print("✅ TreeAnalyzer initialized successfully")
+    except Exception as e:
+        print(f"❌ Failed to initialize TreeAnalyzer: {e}")
+        sys.exit(1)
+    
+    # Run all tree-level analysis
+    run_all_tree_level_analysis(tree_analyzer)
+    
+    # Run data-dependent analysis if data directory provided
+    data_analysis_done = False
+    if args.data_dir:
+        print("\n🔧 Initializing ModelAnalyzer for data-dependent analysis...")
+        try:
+            model_analyzer = ModelAnalyzer(tree_analyzer, target_class=args.target_class or 0)
+            print("✅ ModelAnalyzer initialized successfully")
+            
+            data_analysis_done = run_all_data_dependent_analysis(
+                model_analyzer, 
+                tree_analyzer, 
+                args.data_dir,
+                args.target_class
+            )
+        except Exception as e:
+            print(f"❌ Failed to run data-dependent analysis: {e}")
+            import traceback
+            traceback.print_exc()
+    else:
+        print("\n" + "="*70)
+        print("ℹ️  SKIPPING DATA-DEPENDENT ANALYSIS")
+        print("="*70)
+        print("No data directory provided. To run complete analysis including:")
+        print("  - Partial Dependence Plots (PDP)")
+        print("  - Marginal Impact Analysis")
+        print("  - Prediction Evolution")
+        print("  - ALE Plots")
+        print("\nRe-run with: python user_model_complete_analysis.py MODEL.json DATA_DIR/")
+        print("="*70)
+    
+    # Generate summary report
+    generate_summary_report(tree_analyzer, data_analysis_done)
+    
+    # Final message
+    print("\n" + "="*70)
+    print("🎉 ANALYSIS COMPLETE!")
+    print("="*70)
+    print(f"\nAll visualizations saved to: {tree_analyzer.plotter.save_dir}/")
+    print("\nYou can now:")
+    print("  1. Review the generated plots")
+    print("  2. Share them in reports or presentations")
+    print("  3. Use them to understand your model's behavior")
+    
+    if not args.data_dir:
+        print("\n💡 Tip: Run with data directory for complete analysis including PDPs!")
+    
+    # Check if model is multi-class
+    is_multiclass = False
+    num_classes = 0
+    
+    # Detect multi-class from objective
+    objective_str = str(tree_analyzer.objective)
+    if 'multi:' in objective_str or 'softmax' in objective_str or 'softprob' in objective_str:
+        is_multiclass = True
+        # Try to infer number of classes from tree count
+        if tree_analyzer.num_trees_total and tree_analyzer.num_trees_outer:
+            num_classes = tree_analyzer.num_trees_total // tree_analyzer.num_trees_outer
+            if num_classes < 2:
+                num_classes = 3  # Default guess
+    
+    if is_multiclass and args.target_class is None and num_classes > 0:
+        print(f"\n💡 Tip: This appears to be a multi-class model (~{num_classes} classes).")
+        print("    Re-run with --target-class to analyze different classes:")
+        for i in range(num_classes):
+            print(f"      python user_model_complete_analysis.py {args.model_path} {args.data_dir or ''} --target-class {i}")
+    
+    print("\n" + "="*70 + "\n")
+
+
+if __name__ == "__main__":
+    main()
+

@@ -460,7 +460,10 @@ class TreeAnalyzer:
         ax.set_xlabel('Feature Usage (Split Count)', fontsize=12)
         ax.set_ylabel('Average Gain (Loss Reduction)', fontsize=12)
         ax.set_title('Feature Importance: Usage vs Gain (bubble size = avg cover)', fontsize=14)
-        ax.grid(True, alpha=0.3, linestyle='--')
+        ax.grid(True, alpha=0.3, linestyle='--', which='both')
+        
+        # Set log scale on y-axis (gain)
+        ax.set_yscale('log')
         
         # Add legend for bubble sizes
         if len(set(sizes)) > 1:
