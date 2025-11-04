@@ -4,6 +4,33 @@
 
 We've created complete examples that download data, train models, and demonstrate all interpretability features!
 
+## 🌟 NEW: Complete Analysis of Your Own Model
+
+**Already have a trained XGBoost model?** Use the comprehensive analysis script:
+
+```bash
+# Run ALL analysis functions on your model (no data needed) - generates ~15 plots
+python xgboost_interp/examples/user_model_complete_analysis.py your_model.json
+
+# Complete analysis with data - generates PDPs and marginal impacts for ALL features
+python xgboost_interp/examples/user_model_complete_analysis.py your_model.json data_directory/
+
+# Multi-class models: analyze specific class
+python xgboost_interp/examples/user_model_complete_analysis.py your_model.json data_dir/ --target-class 0
+```
+
+**What it does:**
+- ✅ Runs all 15 tree-level analysis functions
+- ✅ Generates partial dependence plots for ALL features
+- ✅ Creates marginal impact visualizations for ALL features
+- ✅ Shows prediction evolution across trees
+- ✅ Generates interactive tree visualizations
+- ✅ Produces comprehensive summary report
+
+**Requirements:**
+- XGBoost model saved as JSON (use `model.save_model("model.json")`)
+- (Optional) Data in parquet format for data-dependent analysis
+
 ### Option 1: Interactive Runner (Recommended)
 
 ```bash

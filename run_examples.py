@@ -44,8 +44,9 @@ def main():
     examples = {
         "1": ("sklearn_dataset_example", "California Housing (Regression)"),
         "2": ("iris_classification_example", "Iris Classification"),
-        "3": ("basic_analysis", "Basic Analysis (requires your model)"),
-        "4": ("advanced_analysis", "Advanced Analysis (requires your model)")
+        "3": ("user_model_complete_analysis", "Complete Analysis - Your Model (ALL functions)"),
+        "4": ("basic_analysis", "Basic Analysis (requires your model)"),
+        "5": ("advanced_analysis", "Advanced Analysis (requires your model)")
     }
     
     print("\nAvailable examples:")
@@ -54,7 +55,8 @@ def main():
     
     print("\nRecommended order:")
     print("  - Start with example 1 or 2 (they include data and model training)")
-    print("  - Then try examples 3 and 4 with your own models")
+    print("  - Try example 3 for complete analysis of your own model")
+    print("  - Then try examples 4 and 5 with your own models")
     
     while True:
         choice = input(f"\nEnter example number (1-{len(examples)}) or 'q' to quit: ").strip()
@@ -67,9 +69,27 @@ def main():
             example_name, description = examples[choice]
             print(f"\nSelected: {description}")
             
-            # Check dependencies for examples 3 and 4
-            if choice in ["3", "4"]:
-                print("⚠️  Note: Examples 3 and 4 require you to:")
+            # Check dependencies for examples 3, 4, and 5
+            if choice == "3":
+                print("⚠️  Example 3 requires you to provide:")
+                print("   1. Path to your XGBoost model JSON file")
+                print("   2. (Optional) Path to data directory with parquet files")
+                print("\n   Usage: python xgboost_interp/examples/user_model_complete_analysis.py MODEL.json [DATA_DIR/]")
+                print("\n   This example runs ALL analysis functions and generates:")
+                print("     - ~15 tree-level plots (no data needed)")
+                print("     - PDPs for ALL features (requires data)")
+                print("     - Marginal impacts for ALL features (requires data)")
+                print("     - Prediction evolution, interactive trees, and more!")
+                proceed = input("\n   Press Enter to see the help message, or 'n' to cancel: ").strip().lower()
+                if proceed == 'n':
+                    continue
+                # Just show the help message
+                import subprocess
+                subprocess.run([sys.executable, f"xgboost_interp/examples/{example_name}.py", "--help"])
+                continue
+                
+            elif choice in ["4", "5"]:
+                print("⚠️  Note: Examples 4 and 5 require you to:")
                 print("   1. Update the model_path in the example file")
                 print("   2. Ensure your data is available")
                 proceed = input("   Do you want to continue? (y/n): ").strip().lower()
@@ -82,7 +102,7 @@ def main():
                 print(f"\n📁 Check the output directory for generated plots and files")
             
         else:
-            print("❌ Invalid choice. Please enter a number 1-4 or 'q'.")
+            print("❌ Invalid choice. Please enter a number 1-5 or 'q'.")
 
 
 if __name__ == "__main__":

@@ -267,6 +267,7 @@ See the `examples/` directory for comprehensive usage examples:
 
 - `sklearn_dataset_example.py`: Complete example with California Housing dataset (regression)
 - `iris_classification_example.py`: Classification example with Iris dataset  
+- `user_model_complete_analysis.py`: **Run ALL analysis functions on your own model** 🌟
 - `basic_analysis.py`: Tree-level analysis without data (requires your model)
 - `advanced_analysis.py`: Full model analysis with data and interactions (requires your model)
 
@@ -279,6 +280,10 @@ python run_examples.py
 # Or run individual examples
 python xgboost_interp/examples/sklearn_dataset_example.py
 python xgboost_interp/examples/iris_classification_example.py
+
+# Analyze your own model (NEW!)
+python xgboost_interp/examples/user_model_complete_analysis.py your_model.json
+python xgboost_interp/examples/user_model_complete_analysis.py your_model.json data_dir/
 ```
 
 The sklearn examples are self-contained and include:
@@ -286,6 +291,29 @@ The sklearn examples are self-contained and include:
 - XGBoost model training (100 trees for housing, 50 for iris)
 - Model saving as JSON
 - Complete interpretability analysis
+
+### Complete Analysis of Your Own Model
+
+The `user_model_complete_analysis.py` script runs **ALL** available analysis and plotting functions:
+
+```bash
+# Tree-level analysis only (no data needed) - generates ~15 plots
+python xgboost_interp/examples/user_model_complete_analysis.py model.json
+
+# Complete analysis with data - generates 15+ plots + PDPs + marginal impacts for ALL features
+python xgboost_interp/examples/user_model_complete_analysis.py model.json data_directory/
+
+# Multi-class: analyze specific class
+python xgboost_interp/examples/user_model_complete_analysis.py model.json data_dir/ --target-class 0
+```
+
+This example demonstrates:
+- ✅ All 15 tree-level analysis functions
+- ✅ Partial dependence plots for ALL features
+- ✅ Marginal impact analysis for ALL features
+- ✅ Prediction evolution across trees
+- ✅ Interactive tree visualizations
+- ✅ Comprehensive summary report
 
 ## Requirements
 
