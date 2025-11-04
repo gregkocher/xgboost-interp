@@ -228,9 +228,11 @@ class ModelAnalyzer:
         
         plt.tight_layout()
         
-        # Save plot
+        # Save plot in PDP subdirectory
+        pdp_dir = os.path.join(self.tree_analyzer.plotter.save_dir, 'pdp')
+        os.makedirs(pdp_dir, exist_ok=True)
         filename = f'PDP_{feature_name}.png'
-        filepath = os.path.join(self.tree_analyzer.plotter.save_dir, filename)
+        filepath = os.path.join(pdp_dir, filename)
         plt.savefig(filepath, dpi=300, bbox_inches='tight')
         plt.close()
     
@@ -294,9 +296,11 @@ class ModelAnalyzer:
         
         plt.tight_layout()
         
-        # Save plot
+        # Save plot in ALE subdirectory
+        ale_dir = os.path.join(self.tree_analyzer.plotter.save_dir, 'ale')
+        os.makedirs(ale_dir, exist_ok=True)
         filename = f'ALE_{feature_name}.png'
-        filepath = os.path.join(self.tree_analyzer.plotter.save_dir, filename)
+        filepath = os.path.join(ale_dir, filename)
         plt.savefig(filepath, dpi=300, bbox_inches='tight')
         plt.close()
     
@@ -497,9 +501,11 @@ class ModelAnalyzer:
         
         plt.tight_layout()
         
-        # Save plot
+        # Save plot in marginal_impact subdirectory
+        marginal_dir = os.path.join(self.tree_analyzer.plotter.save_dir, 'marginal_impact')
+        os.makedirs(marginal_dir, exist_ok=True)
         filename = f"marginal_impact_{feature_name}.png"
-        filepath = os.path.join(self.tree_analyzer.plotter.save_dir, filename)
+        filepath = os.path.join(marginal_dir, filename)
         plt.savefig(filepath, dpi=300, bbox_inches='tight')
         plt.close()
     

@@ -190,11 +190,12 @@ def run_all_tree_level_analysis(tree_analyzer):
             print(f"  [{i}/{len(feature_names)}] Computing marginal impact for '{feature}'...")
             temp_analyzer.plot_marginal_impact_univariate(feature, scale="linear")
             marginal_success_count += 1
-            print(f"  ✅ Generated: marginal_impact_{feature}.png")
+            print(f"  ✅ Generated: marginal_impact/{feature}.png")
         except Exception as e:
             print(f"  ⚠️ Failed for {feature}: {e}")
     
     print(f"\n✅ Generated {marginal_success_count}/{len(feature_names)} marginal impact plots")
+    print(f"   Saved in: {tree_analyzer.plotter.save_dir}/marginal_impact/")
     
     # 16. Interactive tree visualization
     print("\n[16/16] Generating interactive tree visualizations...")
@@ -275,11 +276,12 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
                 n_curves=min(1000, len(model_analyzer.df))
             )
             pdp_success_count += 1
-            print(f"  ✅ Generated: PDP_{feature}.png")
+            print(f"  ✅ Generated: pdp/{feature}.png")
         except Exception as e:
             print(f"  ⚠️ Failed for {feature}: {e}")
     
     print(f"\n✅ Generated {pdp_success_count}/{len(feature_names)} PDP plots")
+    print(f"   Saved in: {tree_analyzer.plotter.save_dir}/pdp/")
     
     # Prediction evolution across trees
     print("\n[4/4] Generating prediction evolution analysis...")
@@ -331,9 +333,11 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
                     include_CI=True,
                     n_curves=min(10000, len(model_analyzer.df))
                 )
-                print(f"  ✅ Generated: ALE_{feature}.png")
+                print(f"  ✅ Generated: ale/{feature}.png")
             except Exception as e:
                 print(f"  ⚠️ Failed for {feature}: {e}")
+        
+        print(f"\n   ALE plots saved in: {tree_analyzer.plotter.save_dir}/ale/")
         
     except ImportError:
         print("  ⚠️ pyALE not installed - skipping ALE plots")
@@ -355,33 +359,54 @@ def generate_summary_report(tree_analyzer, data_analysis_done):
     output_dir = tree_analyzer.plotter.save_dir
     
     if os.path.exists(output_dir):
-        files = os.listdir(output_dir)
-        png_files = sorted([f for f in files if f.endswith('.png')])
+        # Count PNG files in main directory
+        main_files = [f for f in os.listdir(output_dir) if f.endswith('.png')]
+        
+        # Count files in subdirectories
+        pdp_dir = os.path.join(output_dir, 'pdp')
+        marginal_dir = os.path.join(output_dir, 'marginal_impact')
+        ale_dir = os.path.join(output_dir, 'ale')
+        
+        pdp_count = len(os.listdir(pdp_dir)) if os.path.exists(pdp_dir) else 0
+        marginal_count = len(os.listdir(marginal_dir)) if os.path.exists(marginal_dir) else 0
+        ale_count = len(os.listdir(ale_dir)) if os.path.exists(ale_dir) else 0
+        
+        total_plots = len(main_files) + pdp_count + marginal_count + ale_count
         
         print(f"\n📁 Output Directory: {output_dir}")
-        print(f"📈 Total Plots Generated: {len(png_files)}")
+        print(f"📈 Total Plots Generated: {total_plots}")
         
-        # Categorize plots
-        tree_plots = [f for f in png_files if any(x in f for x in ['tree', 'depth', 'gain', 'cumulative'])]
-        feature_plots = [f for f in png_files if 'feature' in f or 'split' in f or 'cooccurrence' in f]
-        pdp_plots = [f for f in png_files if 'PDP_' in f]
-        marginal_plots = [f for f in png_files if 'marginal_impact' in f]
-        ale_plots = [f for f in png_files if 'ALE_' in f]
-        other_plots = [f for f in png_files if f not in tree_plots + feature_plots + pdp_plots + marginal_plots + ale_plots]
+        # Categorize main directory plots
+        tree_plots = [f for f in main_files if any(x in f for x in ['tree', 'depth', 'gain', 'cumulative', 'prediction_stats'])]
+        feature_plots = [f for f in main_files if 'feature' in f or 'split' in f or 'cooccurrence' in f]
+        other_plots = [f for f in main_files if f not in tree_plots + feature_plots]
         
         print(f"\n📊 Plot Categories:")
-        print(f"  🌳 Tree Structure Plots: {len(tree_plots)}")
-        print(f"  🔧 Feature Analysis Plots: {len(feature_plots)}")
-        if data_analysis_done:
-            print(f"  📉 Partial Dependence Plots: {len(pdp_plots)}")
-            print(f"  📊 Marginal Impact Plots: {len(marginal_plots)}")
-            if ale_plots:
-                print(f"  📈 ALE Plots: {len(ale_plots)}")
-            print(f"  📋 Other Plots: {len(other_plots)}")
+        print(f"  🌳 Tree Structure Plots: {len(tree_plots)} (in main directory)")
+        print(f"  🔧 Feature Analysis Plots: {len(feature_plots)} (in main directory)")
         
-        print(f"\n📄 All Generated Files:")
-        for f in png_files:
-            print(f"  ✅ {f}")
+        # Always show marginal impact (Part 1 - no data needed)
+        if marginal_count > 0:
+            print(f"  📊 Marginal Impact Plots: {marginal_count} (in marginal_impact/)")
+        
+        if data_analysis_done:
+            if pdp_count > 0:
+                print(f"  📉 Partial Dependence Plots: {pdp_count} (in pdp/)")
+            if ale_count > 0:
+                print(f"  📈 ALE Plots: {ale_count} (in ale/)")
+            if other_plots:
+                print(f"  📋 Other Plots: {len(other_plots)} (in main directory)")
+        
+        print(f"\n📂 Directory Structure:")
+        print(f"  {output_dir}/")
+        print(f"    ├── {len(main_files)} plots (tree structure, feature importance, etc.)")
+        if marginal_count > 0:
+            print(f"    ├── marginal_impact/ ({marginal_count} plots)")
+        if pdp_count > 0:
+            print(f"    ├── pdp/ ({pdp_count} plots)")
+        if ale_count > 0:
+            print(f"    └── ale/ ({ale_count} plots)")
+        
     else:
         print(f"\n⚠️ Output directory not found: {output_dir}")
     
