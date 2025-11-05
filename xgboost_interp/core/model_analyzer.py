@@ -326,18 +326,16 @@ class ModelAnalyzer:
         scores_matrix = []
         for k in tree_indices:
             if self.num_classes and self.num_classes > 2:
-                # Multi-class: iteration_range refers to boosting rounds (not total trees)
-                # Each round trains num_classes trees
-                # So k total trees = k // num_classes rounds
-                num_rounds = k // self.num_classes
-                if num_rounds == 0:
-                    num_rounds = 1
+                # Multi-class: iteration_range refers to boosting rounds
+                # Each round trains num_classes trees (one per class)
+                # Tree index k corresponds to round ceil(k/num_classes)
+                num_rounds = (k + self.num_classes - 1) // self.num_classes  # Ceiling division
                 pred_proba = self.xgb_model.predict_proba(
                     X, iteration_range=(0, num_rounds)
                 )
                 pred_prob = pred_proba[:, self.target_class]
             else:
-                # Binary: use margin and sigmoid
+                # Binary/Regression: iteration_range is actual tree count
                 pred_logit = self.xgb_model.predict(
                     X, iteration_range=(0, k), output_margin=True
                 )
@@ -424,8 +422,15 @@ class ModelAnalyzer:
                 
                 if split_indices[node] == feat_idx:
                     threshold = split_conditions[node]
-                    left_val = weights[lefts[node]] if lefts[node] != -1 else 0
-                    right_val = weights[rights[node]] if rights[node] != -1 else 0
+                    left_child = lefts[node]
+                    right_child = rights[node]
+                    
+                    # Skip if either child is a leaf (shouldn't happen for valid splits)
+                    if left_child == -1 or right_child == -1:
+                        return
+                    
+                    left_val = weights[left_child]
+                    right_val = weights[right_child]
                     
                     # For multi-class, weights are raw logits that get softmax-ed
                     # For binary, weights are logits that get sigmoid-ed

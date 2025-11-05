@@ -165,7 +165,7 @@ class TreePlotter(BasePlotter):
         fig, ax = plt.subplots(figsize=(max(18, len(feature_names) * 0.25), 8))
         
         import seaborn as sns
-        sns.heatmap(
+        heatmap = sns.heatmap(
             gain_matrix,
             xticklabels=feature_names,
             yticklabels=[f"Tree {i}" for i in range(len(trees))],
@@ -174,7 +174,11 @@ class TreePlotter(BasePlotter):
             ax=ax
         )
         
-        ax.set_title("Per-Tree Feature Gain Heatmap")
+        # Make colorbar text bigger
+        cbar = heatmap.collections[0].colorbar
+        cbar.ax.tick_params(labelsize=12)
+        
+        ax.set_title("Per-Tree Feature Gain Heatmap", fontsize=16)
         ax.set_xlabel("Features")
         ax.set_ylabel("Trees")
         

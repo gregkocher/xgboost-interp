@@ -263,31 +263,31 @@ class TreeAnalyzer:
         self.plotter._save_plot('cumulative_gain.png')
     
     def plot_cumulative_prediction_shift(self) -> None:
-        """Plot cumulative prediction shift using mean absolute leaf outputs."""
+        """Plot cumulative mean absolute leaf magnitude across trees."""
         import matplotlib.pyplot as plt
         import numpy as np
         
-        shifts = []
+        mean_abs_magnitudes = []
         for tree in self.trees:
             base_weights = tree.get("base_weights", [])
             lefts = tree.get("left_children", [])
             
             # Get leaf values (nodes where left_children == -1)
             leaf_vals = [w for i, w in enumerate(base_weights) if lefts[i] == -1]
-            mean_abs_shift = np.mean(np.abs(leaf_vals)) if leaf_vals else 0
-            shifts.append(mean_abs_shift)
+            mean_abs_magnitude = np.mean(np.abs(leaf_vals)) if leaf_vals else 0
+            mean_abs_magnitudes.append(mean_abs_magnitude)
         
-        if not shifts:
-            print("⚠️ No prediction shift data found")
+        if not mean_abs_magnitudes:
+            print("⚠️ No leaf magnitude data found")
             return
         
-        cumulative_shift = np.cumsum(shifts)
+        cumulative_magnitude = np.cumsum(mean_abs_magnitudes)
         
         fig, ax = plt.subplots(figsize=(10, 5))
-        ax.plot(cumulative_shift, linewidth=2, color='red')
+        ax.plot(cumulative_magnitude, linewidth=2, color='red')
         ax.set_xlabel("Tree Index")
-        ax.set_ylabel("Cumulative Σ |Leaf Output|")
-        ax.set_title("Cumulative Prediction Shift Over Trees")
+        ax.set_ylabel("Cumulative Σ Mean(|Leaf Values|)")
+        ax.set_title("Cumulative Leaf Magnitude Over Trees")
         ax.grid(True, linestyle='--', alpha=0.5)
         
         plt.tight_layout()
@@ -308,8 +308,17 @@ class TreeAnalyzer:
         
         for tree in self.trees:
             split_indices = tree.get("split_indices", [])
-            features_in_tree = set(self.feature_names[i] for i in split_indices 
-                                  if i < len(self.feature_names))
+            left_children = tree.get("left_children", [])
+            
+            # Only include actual split nodes (not leaf nodes)
+            features_in_tree = set()
+            for node_id, feat_idx in enumerate(split_indices):
+                if left_children[node_id] == -1:  # Skip leaf nodes
+                    continue
+                if 0 <= feat_idx < len(self.feature_names):
+                    features_in_tree.add(self.feature_names[feat_idx])
+            
+            # Count co-occurrences
             for f1, f2 in combinations(features_in_tree, 2):
                 i, j = self.feature_names.index(f1), self.feature_names.index(f2)
                 co_matrix[i][j] += 1
@@ -341,9 +350,10 @@ class TreeAnalyzer:
             def dfs(node, path):
                 if node == -1:
                     return
-                path.append(split_indices[node])
+                
+                # Check if this is a leaf node
                 if lefts[node] == -1 and rights[node] == -1:
-                    # Leaf node - process the path
+                    # Leaf node - process the path (don't add this node's split_index)
                     features_in_path = set(self.feature_names[i] for i in path 
                                           if i < len(self.feature_names))
                     for f1, f2 in combinations(features_in_path, 2):
@@ -353,8 +363,10 @@ class TreeAnalyzer:
                     for f in features_in_path:
                         i = self.feature_names.index(f)
                         co_matrix[i][i] += 1
-                    path.pop()
                     return
+                
+                # Internal node - add to path and recurse
+                path.append(split_indices[node])
                 dfs(lefts[node], path)
                 dfs(rights[node], path)
                 path.pop()

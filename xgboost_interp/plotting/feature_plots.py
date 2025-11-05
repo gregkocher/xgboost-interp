@@ -35,12 +35,16 @@ class FeaturePlotter(BasePlotter):
         fig_size = (max(12, len(labels) * 0.25), max(10, len(labels) * 0.25))
         fig, ax = plt.subplots(figsize=fig_size)
         
-        sns.heatmap(matrix, xticklabels=labels, yticklabels=labels, 
-                   cmap="viridis", square=True, ax=ax)
+        heatmap = sns.heatmap(matrix, xticklabels=labels, yticklabels=labels, 
+                   cmap="viridis", square=True, ax=ax, cbar_kws={'label': ''})
+        
+        # Make colorbar text bigger
+        cbar = heatmap.collections[0].colorbar
+        cbar.ax.tick_params(labelsize=12)
         
         ax.set_xticklabels(labels, rotation=45, fontsize=6, ha="right")
         ax.set_yticklabels(labels, fontsize=6)
-        ax.set_title(title, fontsize=12)
+        ax.set_title(title, fontsize=16)
         
         plt.tight_layout()
         self._save_plot(filename)
@@ -86,12 +90,16 @@ class FeaturePlotter(BasePlotter):
         fig_height = max(10, num_features * 0.3)
         
         fig, ax = plt.subplots(figsize=(fig_width, fig_height))
-        sns.heatmap(usage_matrix, cmap="viridis", xticklabels=100, 
+        heatmap = sns.heatmap(usage_matrix, cmap="viridis", xticklabels=100, 
                    yticklabels=feature_labels, ax=ax)
+        
+        # Make colorbar text bigger
+        cbar = heatmap.collections[0].colorbar
+        cbar.ax.tick_params(labelsize=12)
         
         ax.set_xlabel("Tree Index")
         ax.set_ylabel("Feature (sorted by total usage)")
-        ax.set_title("Feature Usage Across Trees")
+        ax.set_title("Feature Usage Across Trees", fontsize=16)
         
         plt.tight_layout()
         self._save_plot('feature_usage_heatmap.png')
@@ -115,6 +123,10 @@ class FeaturePlotter(BasePlotter):
             
             def traverse(node: int, depth: int) -> None:
                 if node == -1 or node >= len(split_indices):
+                    return
+                
+                # Skip leaf nodes - they don't split on features
+                if lefts[node] == -1:
                     return
                 
                 feat_idx = split_indices[node]
@@ -173,16 +185,18 @@ class FeaturePlotter(BasePlotter):
             right_children = tree.get("right_children", [])
             
             for i, feat_idx in enumerate(split_indices):
-                if (left_children[i] == -1 or right_children[i] == -1 or
-                    feat_idx >= len(feature_names)):
+                # Skip leaf nodes
+                if left_children[i] == -1 or right_children[i] == -1:
+                    continue
+                if feat_idx >= len(feature_names):
                     continue
                 
-                parent = base_weights[i]
+                # Calculate difference between left and right children
                 left = base_weights[left_children[i]]
                 right = base_weights[right_children[i]]
                 
-                # Average absolute difference from parent
-                delta = (abs(left - parent) + abs(right - parent)) / 2
+                # Absolute difference between children (prediction divergence at split)
+                delta = abs(right - left)
                 feature_name = feature_names[feat_idx]
                 feature_deltas[feature_name].append(delta)
         
