@@ -210,8 +210,12 @@ class ModelAnalyzer:
         fig, ax = plt.subplots(figsize=(14, 5))
         
         # ICE curves (gray, transparent)
-        for ice in ice_curves:
-            ax.plot(grid_values, ice, color='gray', alpha=0.2, linewidth=1)
+        for i, ice in enumerate(ice_curves):
+            # Only add label to first ICE curve for legend
+            if i == 0:
+                ax.plot(grid_values, ice, color='gray', alpha=0.2, linewidth=1, label="ICE curves")
+            else:
+                ax.plot(grid_values, ice, color='gray', alpha=0.2, linewidth=1)
         
         # Average PDP (red dotted line)
         ax.plot(grid_values, averaged, color='red', linestyle='--', 

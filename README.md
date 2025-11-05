@@ -162,10 +162,10 @@ Combined view of feature importance across weight, gain, and cover metrics.
 *California Housing dataset - shows MedInc (median income) as the most important feature*
 
 #### 4. Marginal Impact
-Feature-specific prediction changes across all splits in the model.
+Feature-specific prediction changes across all splits in the model. Shows how the model's prediction changes in different ranges of a feature based on the tree structure alone (no data required). The step function displays the marginal prediction change at each threshold, with color intensity indicating the magnitude of impact.
 
 ![Marginal Impact](docs/images/marginal_impact_petal_length.png)
-*Iris dataset - detailed view of how petal length splits affect predictions*
+*Iris dataset - marginal impact of petal length on class 2 probability. Strong positive impact in the 3-4.5cm range (darker green) indicates higher probability for class 2 (virginica). Negative impact below 3cm (red) suggests lower probability. The step function shows exact prediction changes at each split threshold across all 150 trees.*
 
 #### 5. Partial Dependence Plot (PDP)
 Shows how predictions change as a feature varies, with ICE curves for individual samples.
