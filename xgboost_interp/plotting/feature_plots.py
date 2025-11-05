@@ -40,11 +40,11 @@ class FeaturePlotter(BasePlotter):
         
         # Make colorbar text bigger
         cbar = heatmap.collections[0].colorbar
-        cbar.ax.tick_params(labelsize=12)
+        cbar.ax.tick_params(labelsize=16)
         
         ax.set_xticklabels(labels, rotation=45, fontsize=6, ha="right")
         ax.set_yticklabels(labels, fontsize=6)
-        ax.set_title(title, fontsize=16)
+        ax.set_title(title, fontsize=20)
         
         plt.tight_layout()
         self._save_plot(filename)

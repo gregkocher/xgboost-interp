@@ -468,25 +468,75 @@ class ModelAnalyzer:
         thresholds = [thresholds[i] for i in sorted_indices]
         prob_deltas = [prob_deltas[i] for i in sorted_indices]
         
-        # Create step plot
+        # Merge very close thresholds to avoid ringing (within 0.1% of range)
         min_val, max_val = min(thresholds), max(thresholds)
-        margin = 0.01 * (max_val - min_val) if max_val > min_val else 0.01
+        threshold_range = max_val - min_val if max_val > min_val else 1.0
+        merge_tolerance = 0.001 * threshold_range
+        
+        merged_thresholds = []
+        merged_deltas = []
+        
+        if thresholds:
+            merged_thresholds.append(thresholds[0])
+            merged_deltas.append(prob_deltas[0])
+            
+            for i in range(1, len(thresholds)):
+                if thresholds[i] - merged_thresholds[-1] < merge_tolerance:
+                    # Merge: average the threshold and sum the deltas
+                    merged_thresholds[-1] = (merged_thresholds[-1] + thresholds[i]) / 2
+                    merged_deltas[-1] += prob_deltas[i]
+                else:
+                    merged_thresholds.append(thresholds[i])
+                    merged_deltas.append(prob_deltas[i])
+        
+        thresholds = merged_thresholds
+        prob_deltas = merged_deltas
+        
+        # Create step plot regions - update min/max after merging
+        if thresholds:
+            min_val, max_val = min(thresholds), max(thresholds)
+            threshold_range = max_val - min_val if max_val > min_val else 1.0
+        
+        margin = 0.01 * threshold_range if threshold_range > 0 else 0.01
         start = min_val - margin
         end = max_val + margin
         
-        regions = [start] + thresholds + [end]
-        values = [0] + prob_deltas
+        # Build step function: each region has a constant delta value
+        # Region before first threshold: 0 (no splits yet)
+        # Region after threshold i: uses delta at that threshold
+        region_boundaries = [start] + thresholds + [end]
+        region_values = [0] + prob_deltas  # First region = 0, then each region uses its delta
         
         fig, ax = plt.subplots(figsize=(16, 4))
         
-        # Color regions based on positive/negative impact
-        for i in range(len(regions) - 1):
-            color = 'green' if values[i] > 0 else 'red'
-            alpha = min(0.9, 0.1 + abs(values[i]) * 10)
-            ax.axvspan(regions[i], regions[i + 1], color=color, alpha=alpha, linewidth=0)
+        # Calculate better color scale based on actual value range
+        all_values = region_values
+        max_abs_value = max(abs(v) for v in all_values) if all_values else 1.0
         
-        # Step plot
-        ax.step(regions[:-1], values, where='post', color='black', 
+        # Color regions based on impact with better gradation
+        for i in range(len(region_boundaries) - 1):
+            value = region_values[i]
+            
+            if value > 0:
+                color = 'green'
+                # Better scaling: use square root for more gradation
+                intensity = np.sqrt(abs(value) / max_abs_value) if max_abs_value > 0 else 0
+                alpha = 0.2 + 0.7 * intensity  # Range: 0.2 to 0.9
+            elif value < 0:
+                color = 'red'
+                intensity = np.sqrt(abs(value) / max_abs_value) if max_abs_value > 0 else 0
+                alpha = 0.2 + 0.7 * intensity  # Range: 0.2 to 0.9
+            else:
+                color = 'gray'
+                alpha = 0.1
+            
+            ax.axvspan(region_boundaries[i], region_boundaries[i + 1], color=color, alpha=alpha, linewidth=0)
+        
+        # Step plot: add final point to complete the last horizontal segment
+        # Step plot needs all boundaries and values to show complete steps
+        step_x = region_boundaries  # Include the final boundary
+        step_y = region_values + [region_values[-1]]  # Extend last value to final boundary
+        ax.step(step_x, step_y, where='post', color='black', 
                label="Marginal Prediction Change", linewidth=1.5)
         ax.axhline(0, color='black', linestyle=':', linewidth=1.0)
         
@@ -502,7 +552,7 @@ class ModelAnalyzer:
         if scale == "log":
             ax.set_xscale("log")
         
-        ax.set_xlim(regions[0], regions[-1])
+        ax.set_xlim(region_boundaries[0], region_boundaries[-1])
         
         plt.tight_layout()
         
