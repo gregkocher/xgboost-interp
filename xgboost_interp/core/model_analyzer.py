@@ -480,6 +480,30 @@ class ModelAnalyzer:
         plt.savefig(filepath, dpi=300, bbox_inches='tight')
         plt.close()
     
+    def _get_predictions_at_tree_index(self, X: pd.DataFrame, tree_index: int) -> np.ndarray:
+        """
+        Get raw logit predictions at a specific tree index.
+        
+        Args:
+            X: Input features
+            tree_index: Tree index to stop at
+            
+        Returns:
+            Array of raw logit predictions
+        """
+        import xgboost as xgb
+        booster = self.xgb_model.get_booster()
+        dtest = xgb.DMatrix(X, feature_names=self.tree_analyzer.feature_names)
+        
+        if self.num_classes and self.num_classes > 2:
+            num_rounds = (tree_index + self.num_classes - 1) // self.num_classes
+            logits = booster.predict(dtest, iteration_range=(0, num_rounds), output_margin=True)
+            logits_target = logits[:, self.target_class]
+        else:
+            logits_target = booster.predict(dtest, iteration_range=(0, tree_index), output_margin=True)
+        
+        return logits_target
+    
     def plot_scores_across_trees(self, tree_indices: List[int], 
                                 n_records: int = 1000, mode: str = "raw") -> None:
         """
@@ -578,6 +602,247 @@ class ModelAnalyzer:
         plt.savefig(filepath, dpi=300, bbox_inches='tight')
         plt.close()
     
+    def _compute_inversion_rate(self, scores_early: np.ndarray, scores_final: np.ndarray) -> float:
+        """
+        Compute the inversion rate between early exit and final scores.
+        
+        Args:
+            scores_early: Scores at early exit point
+            scores_final: Scores at final tree
+            
+        Returns:
+            Inversion rate as a fraction (0 to 1)
+        """
+        n = len(scores_early)
+        if n < 2:
+            return 0.0
+        
+        inversions = 0
+        total_pairs = 0
+        
+        # Count inversions for all pairs (i, j) where i < j
+        for i in range(n):
+            for j in range(i + 1, n):
+                total_pairs += 1
+                # Inversion: early has i >= j, but final has i < j
+                if scores_early[i] >= scores_early[j] and scores_final[i] < scores_final[j]:
+                    inversions += 1
+        
+        return inversions / total_pairs if total_pairs > 0 else 0.0
+    
+    def analyze_early_exit_performance(self, 
+                                      early_exit_points: List[int] = None,
+                                      n_records: int = 1000,
+                                      n_detailed_curves: int = 100) -> None:
+        """
+        Analyze early exit performance metrics and generate visualizations.
+        
+        Computes multiple metrics comparing early exit predictions to final predictions:
+        - Inversion Rate: Fraction of pairwise rankings that flip
+        - MSE: Mean squared error between early and final logit scores
+        - Kendall-Tau: Rank correlation coefficient (robust to outliers)
+        - Spearman: Rank correlation coefficient (monotonic relationships)
+        
+        Also creates scatter plots and detailed score evolution visualizations.
+        
+        Args:
+            early_exit_points: List of tree indices for early exit (default: [100, 500, 1000, 2000, 3000, 4000])
+            n_records: Number of data points for analysis (default: 1000)
+            n_detailed_curves: Number of curves for detailed evolution plot (default: 100)
+        """
+        self._check_data_and_model()
+        
+        if early_exit_points is None:
+            early_exit_points = [100, 500, 1000, 2000, 3000, 4000]
+        
+        # Get total number of trees
+        total_trees = len(self.tree_analyzer.trees)
+        if self.num_classes and self.num_classes > 2:
+            total_trees = total_trees // self.num_classes
+        
+        # Filter exit points that are within the model's tree count
+        early_exit_points = [ep for ep in early_exit_points if ep < total_trees]
+        
+        if not early_exit_points:
+            print(f"Warning: No valid early exit points (model has {total_trees} trees)")
+            return
+        
+        print('='*70)
+        print('Early Exit Performance Analysis')
+        print('='*70)
+        
+        # Sample data
+        X = self.df[self.tree_analyzer.feature_names].iloc[:n_records]
+        
+        # Get final predictions (all trees)
+        print(f'\nComputing predictions at {len(early_exit_points)} early exit points...')
+        final_scores = self._get_predictions_at_tree_index(X, total_trees)
+        
+        # Compute metrics for each early exit point
+        results = []
+        all_early_scores = {}
+        
+        from scipy.stats import kendalltau, spearmanr
+        
+        for exit_point in early_exit_points:
+            early_scores = self._get_predictions_at_tree_index(X, exit_point)
+            all_early_scores[exit_point] = early_scores
+            
+            # Compute inversion rate
+            inversion_rate = self._compute_inversion_rate(early_scores, final_scores)
+            
+            # Compute MSE
+            mse = np.mean((early_scores - final_scores) ** 2)
+            
+            # Compute rank correlation metrics
+            kendall_tau, _ = kendalltau(early_scores, final_scores)
+            spearman_rho, _ = spearmanr(early_scores, final_scores)
+            
+            results.append({
+                'Tree Index': exit_point,
+                'Inversion Rate': f'{inversion_rate * 100:.2f}%',
+                'MSE': f'{mse:.6f}',
+                'Kendall-Tau': f'{kendall_tau:.4f}',
+                'Spearman': f'{spearman_rho:.4f}'
+            })
+        
+        # Print table
+        print('\n' + '='*70)
+        df_results = pd.DataFrame(results)
+        print(df_results.to_string(index=False))
+        print('='*70)
+        
+        # Save table to file
+        table_path = os.path.join(self.tree_analyzer.plotter.save_dir, 'early_exit_analysis.txt')
+        with open(table_path, 'w') as f:
+            f.write('='*70 + '\n')
+            f.write('Early Exit Performance Analysis\n')
+            f.write('='*70 + '\n\n')
+            f.write(df_results.to_string(index=False))
+            f.write('\n' + '='*70 + '\n')
+        print(f'\n✅ Saved table to: {table_path}')
+        
+        # Create scatter plots
+        self._plot_early_exit_scatter(all_early_scores, final_scores, early_exit_points)
+        
+        # Create detailed evolution plot
+        self._plot_detailed_evolution(X[:n_detailed_curves], total_trees)
+    
+    def _plot_early_exit_scatter(self, all_early_scores: dict, final_scores: np.ndarray, 
+                                 early_exit_points: List[int]) -> None:
+        """Create scatter plots comparing early exit vs final scores."""
+        n_plots = len(early_exit_points)
+        
+        # Use subplots if we have multiple exit points
+        if n_plots <= 3:
+            fig, axes = plt.subplots(1, n_plots, figsize=(6 * n_plots, 5))
+            if n_plots == 1:
+                axes = [axes]
+        else:
+            rows = (n_plots + 2) // 3
+            fig, axes = plt.subplots(rows, 3, figsize=(18, 5 * rows))
+            axes = axes.flatten()
+        
+        colors = plt.cm.viridis(np.linspace(0, 0.9, n_plots))
+        
+        for idx, exit_point in enumerate(early_exit_points):
+            ax = axes[idx]
+            early_scores = all_early_scores[exit_point]
+            
+            # Scatter plot
+            ax.scatter(early_scores, final_scores, alpha=0.15, s=20, color=colors[idx])
+            
+            # Diagonal reference line
+            min_val = min(early_scores.min(), final_scores.min())
+            max_val = max(early_scores.max(), final_scores.max())
+            ax.plot([min_val, max_val], [min_val, max_val], 'r--', linewidth=1.5, 
+                   alpha=0.7, label='Perfect Agreement')
+            
+            # Compute MSE for title
+            mse = np.mean((early_scores - final_scores) ** 2)
+            
+            ax.set_xlabel(f'Score at Tree {exit_point} (logit)')
+            ax.set_ylabel('Final Score (logit)')
+            ax.set_title(f'Early Exit at Tree {exit_point}\nMSE: {mse:.6f}')
+            ax.legend()
+            ax.grid(True, alpha=0.3)
+        
+        # Hide unused subplots
+        for idx in range(n_plots, len(axes)):
+            axes[idx].set_visible(False)
+        
+        plt.tight_layout()
+        
+        # Save
+        filepath = os.path.join(self.tree_analyzer.plotter.save_dir, 'early_exit_scatter.png')
+        plt.savefig(filepath, dpi=300, bbox_inches='tight')
+        plt.close()
+        print(f'✅ Saved scatter plots to: {filepath}')
+    
+    def _plot_detailed_evolution(self, X: pd.DataFrame, total_trees: int) -> None:
+        """Create detailed score evolution plot across all trees."""
+        n_curves = len(X)
+        print(f'\nComputing detailed evolution for {n_curves} examples across {total_trees} trees...')
+        print('   This may take a moment...')
+        
+        import xgboost as xgb
+        booster = self.xgb_model.get_booster()
+        dtest = xgb.DMatrix(X, feature_names=self.tree_analyzer.feature_names)
+        
+        # Compute predictions at every tree index
+        # Sample trees densely (every 10th tree for efficiency if > 1000 trees)
+        if total_trees > 1000:
+            tree_indices = list(range(0, total_trees, 10)) + [total_trees]
+        else:
+            tree_indices = list(range(0, total_trees + 1))
+        
+        scores_matrix = []
+        for tree_idx in tree_indices:
+            if self.num_classes and self.num_classes > 2:
+                num_rounds = max(1, (tree_idx + self.num_classes - 1) // self.num_classes)
+                logits = booster.predict(dtest, iteration_range=(0, num_rounds), output_margin=True)
+                logits_target = logits[:, self.target_class]
+            else:
+                if tree_idx == 0:
+                    # For 0 trees, get base score
+                    logits_target = booster.predict(dtest, iteration_range=(0, 0), output_margin=True)
+                else:
+                    logits_target = booster.predict(dtest, iteration_range=(0, tree_idx), output_margin=True)
+            
+            scores_matrix.append(logits_target)
+        
+        scores_matrix = np.array(scores_matrix).T
+        
+        # Plot
+        fig, ax = plt.subplots(figsize=(16, 6))
+        
+        # Individual curves (low alpha)
+        for i in range(scores_matrix.shape[0]):
+            ax.plot(tree_indices, scores_matrix[i], color='gray', alpha=0.1, linewidth=0.8)
+        
+        # Summary statistics (bold)
+        mean_scores = np.mean(scores_matrix, axis=0)
+        median_scores = np.median(scores_matrix, axis=0)
+        
+        ax.plot(tree_indices, mean_scores, color='red', linewidth=2.5, 
+               linestyle='-', label=f'Mean (n={n_curves})')
+        ax.plot(tree_indices, median_scores, color='blue', linewidth=2.5, 
+               linestyle='-', label=f'Median (n={n_curves})')
+        
+        ax.set_xlabel('Tree Index')
+        ax.set_ylabel('Predicted Logit')
+        ax.set_title(f'Detailed Score Evolution Across All Trees\n({n_curves} examples)')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        
+        plt.tight_layout()
+        
+        # Save
+        filepath = os.path.join(self.tree_analyzer.plotter.save_dir, 'early_exit_detailed_evolution.png')
+        plt.savefig(filepath, dpi=300, bbox_inches='tight')
+        plt.close()
+        print(f'✅ Saved detailed evolution plot to: {filepath}')
+    
     def plot_marginal_impact_univariate(self, feature_name: str, 
                                        scale: str = "linear") -> None:
         """
@@ -617,6 +882,11 @@ class ModelAnalyzer:
                 
                 if split_indices[node] == feat_idx:
                     threshold = split_conditions[node]
+                    
+                    # Skip if threshold is None - this is the root cause!
+                    if threshold is None:
+                        return
+                    
                     left_child, right_child = lefts[node], rights[node]
                     
                     if left_child == -1 or right_child == -1:
@@ -629,7 +899,7 @@ class ModelAnalyzer:
                     left_weight = weights[left_child]
                     right_weight = weights[right_child]
                     
-                    # Skip if weights are None or invalid
+                    # Skip if weights are None
                     if left_weight is None or right_weight is None:
                         return
                     
@@ -652,7 +922,7 @@ class ModelAnalyzer:
         
         # Print split summary
         print(f"Found {len(thresholds)} splits for feature '{feature_name}':")
-        for split_global_idx, tree_idx, depth, threshold, delta in split_info[:5]:  # Show first 5
+        for split_global_idx, tree_idx, depth, threshold, delta in split_info[:5]:
             print(f"  Split {split_global_idx}, Tree {tree_idx}, Depth {depth}: "
                   f"{feature_name} < {threshold:.4f} → Δ = {delta:.4f}")
         if len(split_info) > 5:
@@ -686,15 +956,11 @@ class ModelAnalyzer:
         fig, ax = plt.subplots(figsize=(16, 4))
         
         # Color regions by impact
-        max_abs_value = max(abs(v) for v in region_values if v is not None)
+        max_abs_value = max(abs(v) for v in region_values)
         max_abs_value = max(max_abs_value, 1e-10)  # Avoid division by zero
         
         for i in range(len(region_boundaries) - 1):
             value = region_values[i]
-            
-            # Skip None values
-            if value is None:
-                continue
             
             if value > 0:
                 color, intensity = 'green', np.sqrt(abs(value) / max_abs_value)
@@ -736,6 +1002,7 @@ class ModelAnalyzer:
         filepath = os.path.join(marginal_dir, f"marginal_impact_{feature_name}.png")
         plt.savefig(filepath, dpi=300, bbox_inches='tight')
         plt.close()
+        print(f"  ✅ Generated: marginal_impact/{feature_name}.png")
     
     def _check_data_and_model(self) -> None:
         """Check that both data and model are loaded."""
