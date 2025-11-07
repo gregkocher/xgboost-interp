@@ -227,7 +227,8 @@ class ModelAnalyzer:
         return np.array(y_pred)
     
     def plot_partial_dependence(self, feature_name: str, grid_points: int = 20,
-                               n_curves: int = 1000, categorical_threshold: int = 250) -> None:
+                               n_curves: int = 1000, categorical_threshold: int = 250,
+                               mode: str = "logit") -> None:
         """
         Plot partial dependence for a feature with automatic categorical detection.
         
@@ -239,6 +240,7 @@ class ModelAnalyzer:
             grid_points: Number of grid points for continuous features
             n_curves: Number of data points to use for PDP computation
             categorical_threshold: Max unique values to treat as categorical (default: 250)
+            mode: "logit" (default) or "probability" - Y-axis scale for plotting
         """
         self._check_data_and_model()
         
@@ -273,17 +275,29 @@ class ModelAnalyzer:
             X_base, feat_idx, unique_values, is_categorical, grid_points
         )
         
-        # Apply base_score correction (convert prob -> logit -> adjust -> prob)
+        # Apply base_score correction (convert prob -> logit -> adjust)
         averaged = np.clip(averaged, 1e-7, 1 - 1e-7)
-        averaged = expit(scipy_logit(averaged) + self.base_score_adjustment)
+        averaged_logits = scipy_logit(averaged) + self.base_score_adjustment
         
         if ice_curves is not None:
             ice_curves = np.clip(ice_curves, 1e-7, 1 - 1e-7)
-            ice_curves = expit(scipy_logit(ice_curves) + self.base_score_adjustment)
+            ice_logits = scipy_logit(ice_curves) + self.base_score_adjustment
+        else:
+            ice_logits = None
+        
+        # Convert to final scale based on mode
+        if mode == "probability":
+            averaged = expit(averaged_logits)
+            ice_curves = expit(ice_logits) if ice_logits is not None else None
+        elif mode == "logit":
+            averaged = averaged_logits
+            ice_curves = ice_logits
+        else:
+            raise ValueError(f"Invalid mode '{mode}'. Must be 'logit' or 'probability'")
         
         # Create and save plot
         self._plot_and_save_pdp(
-            feature_name, grid_values, averaged, ice_curves, is_categorical, n_unique
+            feature_name, grid_values, averaged, ice_curves, is_categorical, n_unique, mode
         )
     
     def _compute_pdp(self, X_base, feat_idx, unique_values, is_categorical, grid_points):
@@ -324,9 +338,12 @@ class ModelAnalyzer:
             return pd_result['average'][0], pd_result['individual'][0], pd_result['grid_values'][0]
     
     def _plot_and_save_pdp(self, feature_name, grid_values, averaged, ice_curves, 
-                           is_categorical, n_unique):
+                           is_categorical, n_unique, mode):
         """Create and save PDP plot."""
         fig, ax = plt.subplots(figsize=(14, 5))
+        
+        # Set ylabel based on mode
+        ylabel = "Predicted Logit" if mode == "logit" else "Predicted Probability"
         
         if is_categorical:
             # Bar plot for categorical features
@@ -347,7 +364,7 @@ class ModelAnalyzer:
                 ]
                 ax.set_xticklabels(labels, rotation=45, ha='right')
             
-            ax.set_ylabel("Average Predicted Probability")
+            ax.set_ylabel(f"Average {ylabel}")
             ax.grid(True, axis='y', linestyle='--', alpha=0.3)
             ax.axhline(y=0, color='black', linestyle='-', linewidth=0.5, alpha=0.5)
         else:
@@ -359,7 +376,7 @@ class ModelAnalyzer:
             
             ax.plot(grid_values, averaged, color='red', linestyle='--', 
                    linewidth=2.0, label="Average PDP", marker='o', markersize=4)
-            ax.set_ylabel("Predicted Probability")
+            ax.set_ylabel(ylabel)
             ax.grid(True, linestyle='--', alpha=0.3)
             ax.legend()
         
@@ -449,16 +466,17 @@ class ModelAnalyzer:
         plt.close()
     
     def plot_scores_across_trees(self, tree_indices: List[int], 
-                                n_records: int = 1000) -> None:
+                                n_records: int = 1000, mode: str = "logit") -> None:
         """
-        Plot prediction probability evolution at different tree stopping points.
+        Plot prediction evolution at different tree stopping points.
         
-        Shows how predicted probabilities change as more trees are added.
-        For multi-class models, shows probability for the target class.
+        Shows how predictions change as more trees are added.
+        For multi-class models, shows predictions for the target class.
         
         Args:
             tree_indices: List of tree indices to evaluate
             n_records: Number of records to analyze
+            mode: "logit" (default) or "probability" - Y-axis scale for plotting
         """
         self._check_data_and_model()
         
@@ -482,8 +500,17 @@ class ModelAnalyzer:
                 logits_target = booster.predict(dtest, iteration_range=(0, k), output_margin=True)
             
             # Apply base_score correction
-            corrected_probs = expit(logits_target + self.base_score_adjustment)
-            scores_matrix.append(corrected_probs)
+            corrected_logits = logits_target + self.base_score_adjustment
+            
+            # Convert to final scale based on mode
+            if mode == "probability":
+                scores = expit(corrected_logits)
+            elif mode == "logit":
+                scores = corrected_logits
+            else:
+                raise ValueError(f"Invalid mode '{mode}'. Must be 'logit' or 'probability'")
+            
+            scores_matrix.append(scores)
         
         scores_matrix = np.array(scores_matrix).T
         
@@ -502,10 +529,11 @@ class ModelAnalyzer:
                color="blue", linewidth=2, linestyle='--', marker='o', label="Median")
         
         ax.set_xlabel("Tree Index")
-        ax.set_ylabel("Predicted Probability")
+        ylabel = "Predicted Logit" if mode == "logit" else "Predicted Probability"
+        ax.set_ylabel(ylabel)
         
         title = f"Class {self.target_class} " if self.num_classes > 2 else ""
-        ax.set_title(f"{title}Early Exit Score Across Trees")
+        ax.set_title(f"{title}Early Exit Score Across Trees [{mode.title()} Scale]")
         ax.legend()
         ax.grid(True)
         
