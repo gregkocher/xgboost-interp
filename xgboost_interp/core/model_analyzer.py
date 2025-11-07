@@ -151,14 +151,19 @@ class ModelAnalyzer:
         return np.array(y_pred)
     
     def plot_partial_dependence(self, feature_name: str, grid_points: int = 20,
-                               n_curves: int = 1000) -> None:
+                               n_curves: int = 1000, categorical_threshold: int = 250) -> None:
         """
-        Plot partial dependence for a feature.
+        Plot partial dependence for a feature with automatic categorical detection.
+        
+        Categorical features (<=250 unique values) are plotted as bar plots using
+        only actual category values. Continuous features use line plots with 
+        interpolated grid points.
         
         Args:
             feature_name: Name of the feature to analyze
-            grid_points: Number of grid points for PDP
+            grid_points: Number of grid points for PDP (continuous features only)
             n_curves: Number of ICE curves to show
+            categorical_threshold: Max unique values to treat as categorical (default: 250)
         """
         self._check_data_and_model()
         
@@ -173,62 +178,195 @@ class ModelAnalyzer:
         X_base = self.df[self.tree_analyzer.feature_names].iloc[:n_curves]
         feat_idx = self.tree_analyzer.feature_names.index(feature_name)
         
-        print(f"Computing PDP for feature '{feature_name}' (index {feat_idx})")
+        # Auto-detect if feature is categorical
+        unique_values = self.df[feature_name].dropna().unique()
+        n_unique = len(unique_values)
+        is_categorical = n_unique <= categorical_threshold
         
-        # For multi-class, specify target class
-        if self.num_classes and self.num_classes > 2:
-            print(f"  Multi-class model: computing PDP for class {self.target_class}")
-            pd_result = partial_dependence(
-                estimator=self.xgb_model,
-                X=X_base,
-                features=[feat_idx],
-                grid_resolution=grid_points,
-                kind='both'
-            )
-            # sklearn returns shape (1, n_outputs, n_grid) for multi-class
-            # We need to extract the specific class
-            if len(pd_result['average']) > 1:
-                averaged = pd_result['average'][self.target_class]
-                ice_curves = pd_result['individual'][self.target_class]
+        if is_categorical:
+            # Sort unique values for categorical features
+            unique_values = sorted(unique_values)
+            print(f"Computing PDP for feature '{feature_name}' (index {feat_idx})")
+            print(f"  Detected as CATEGORICAL ({n_unique} unique values)")
+            print(f"  Using actual category values only (no interpolation)")
+        else:
+            print(f"Computing PDP for feature '{feature_name}' (index {feat_idx})")
+            print(f"  Detected as CONTINUOUS ({n_unique} unique values)")
+            print(f"  Using {grid_points} interpolated grid points")
+        
+        # Compute partial dependence
+        if is_categorical:
+            # For categorical: use actual unique values as grid
+            # Try using custom_values parameter (sklearn >= 1.7) or grid_values (sklearn 1.0-1.6)
+            # Fall back to manual computation if neither works
+            try:
+                if self.num_classes and self.num_classes > 2:
+                    print(f"  Multi-class model: computing PDP for class {self.target_class}")
+                    try:
+                        # Try custom_values first (sklearn >= 1.7)
+                        pd_result = partial_dependence(
+                            estimator=self.xgb_model,
+                            X=X_base,
+                            features=[feat_idx],
+                            custom_values=[unique_values],  # sklearn >= 1.7
+                            kind='average'
+                        )
+                    except TypeError:
+                        # Fall back to grid_values (sklearn 1.0-1.6)
+                        pd_result = partial_dependence(
+                            estimator=self.xgb_model,
+                            X=X_base,
+                            features=[feat_idx],
+                            grid_values=[unique_values],  # sklearn 1.0-1.6
+                            kind='average'
+                        )
+                    
+                    if len(pd_result['average']) > 1:
+                        averaged = pd_result['average'][self.target_class]
+                    else:
+                        averaged = pd_result['average'][0]
+                    grid_values = pd_result['grid_values'][0] if 'grid_values' in pd_result else pd_result['values'][0]
+                    ice_curves = None
+                else:
+                    try:
+                        # Try custom_values first (sklearn >= 1.7)
+                        pd_result = partial_dependence(
+                            estimator=self.xgb_model,
+                            X=X_base,
+                            features=[feat_idx],
+                            custom_values=[unique_values],
+                            kind='average'
+                        )
+                    except TypeError:
+                        # Fall back to grid_values (sklearn 1.0-1.6)
+                        pd_result = partial_dependence(
+                            estimator=self.xgb_model,
+                            X=X_base,
+                            features=[feat_idx],
+                            grid_values=[unique_values],
+                            kind='average'
+                        )
+                    
+                    averaged = pd_result['average'][0]
+                    grid_values = pd_result['grid_values'][0] if 'grid_values' in pd_result else pd_result['values'][0]
+                    ice_curves = None
+            except TypeError as e:
+                # Fallback for very old sklearn versions - manual computation
+                if 'grid_values' in str(e) or 'custom_values' in str(e):
+                    print(f"  Note: Using manual PDP computation (sklearn < 1.0 detected)")
+                    # Manually compute PDP for each category value
+                    averaged = []
+                    grid_values = unique_values
+                    
+                    for cat_value in unique_values:
+                        # Create modified dataset with this category value for all samples
+                        X_modified = X_base.copy()
+                        X_modified.iloc[:, feat_idx] = cat_value
+                        
+                        # Get predictions
+                        if self.num_classes and self.num_classes > 2:
+                            preds = self.xgb_model.predict_proba(X_modified)[:, self.target_class]
+                        else:
+                            preds = self.xgb_model.predict(X_modified)
+                        
+                        # Average prediction for this category
+                        averaged.append(preds.mean())
+                    
+                    averaged = np.array(averaged)
+                    ice_curves = None
+                else:
+                    raise  # Re-raise if it's a different error
+        else:
+            # For continuous: use regular grid with ICE curves
+            if self.num_classes and self.num_classes > 2:
+                print(f"  Multi-class model: computing PDP for class {self.target_class}")
+                pd_result = partial_dependence(
+                    estimator=self.xgb_model,
+                    X=X_base,
+                    features=[feat_idx],
+                    grid_resolution=grid_points,
+                    kind='both'
+                )
+                if len(pd_result['average']) > 1:
+                    averaged = pd_result['average'][self.target_class]
+                    ice_curves = pd_result['individual'][self.target_class]
+                else:
+                    averaged = pd_result['average'][0]
+                    ice_curves = pd_result['individual'][0]
+                grid_values = pd_result['grid_values'][0]
             else:
+                pd_result = partial_dependence(
+                    estimator=self.xgb_model,
+                    X=X_base,
+                    features=[feat_idx],
+                    grid_resolution=grid_points,
+                    kind='both'
+                )
                 averaged = pd_result['average'][0]
                 ice_curves = pd_result['individual'][0]
-            grid_values = pd_result['grid_values'][0]
-        else:
-            pd_result = partial_dependence(
-                estimator=self.xgb_model,
-                X=X_base,
-                features=[feat_idx],
-                grid_resolution=grid_points,
-                kind='both'
-            )
-            averaged = pd_result['average'][0]
-            ice_curves = pd_result['individual'][0]
-            grid_values = pd_result['grid_values'][0]
+                grid_values = pd_result['grid_values'][0]
         
         # Create plot
         fig, ax = plt.subplots(figsize=(14, 5))
         
-        # ICE curves (gray, transparent)
-        for i, ice in enumerate(ice_curves):
-            # Only add label to first ICE curve for legend
-            if i == 0:
-                ax.plot(grid_values, ice, color='gray', alpha=0.2, linewidth=1, label="ICE curves")
+        if is_categorical:
+            # Bar plot for categorical features
+            colors = ['steelblue' if val >= 0 else 'coral' for val in averaged]
+            bars = ax.bar(range(len(grid_values)), averaged, color=colors, alpha=0.7, edgecolor='black')
+            
+            # Set x-tick labels to actual category values
+            ax.set_xticks(range(len(grid_values)))
+            if n_unique <= 20:
+                # Show all labels if few categories
+                ax.set_xticklabels([f'{int(v)}' if v == int(v) else f'{v:.2f}' 
+                                   for v in grid_values], rotation=45, ha='right')
             else:
-                ax.plot(grid_values, ice, color='gray', alpha=0.2, linewidth=1)
-        
-        # Average PDP (red dotted line)
-        ax.plot(grid_values, averaged, color='red', linestyle='--', 
-               linewidth=2.0, label="Average PDP")
+                # Show every nth label for many categories
+                step = max(1, n_unique // 20)
+                labels = [f'{int(grid_values[i])}' if grid_values[i] == int(grid_values[i]) 
+                         else f'{grid_values[i]:.2f}' 
+                         if i % step == 0 else '' 
+                         for i in range(len(grid_values))]
+                ax.set_xticklabels(labels, rotation=45, ha='right')
+            
+            ax.set_ylabel("Average Predicted Probability")
+            ax.grid(True, axis='y', linestyle='--', alpha=0.3)
+            
+            # Add a horizontal line at y=0 for reference
+            ax.axhline(y=0, color='black', linestyle='-', linewidth=0.5, alpha=0.5)
+            
+        else:
+            # Line plot for continuous features with ICE curves
+            if ice_curves is not None:
+                # ICE curves (gray, transparent)
+                for i, ice in enumerate(ice_curves):
+                    if i == 0:
+                        ax.plot(grid_values, ice, color='gray', alpha=0.2, linewidth=1, label="ICE curves")
+                    else:
+                        ax.plot(grid_values, ice, color='gray', alpha=0.2, linewidth=1)
+            
+            # Average PDP (red line)
+            ax.plot(grid_values, averaged, color='red', linestyle='--', 
+                   linewidth=2.0, label="Average PDP", marker='o', markersize=4)
+            
+            ax.set_ylabel("Predicted Probability")
+            ax.grid(True, linestyle='--', alpha=0.3)
+            ax.legend()
         
         ax.set_xlabel(feature_name)
-        ax.set_ylabel("Predicted Probability")
+        
+        # Set title
         if self.num_classes and self.num_classes > 2:
-            ax.set_title(f"Partial Dependence Plot for '{feature_name}' (Class {self.target_class})")
+            title = f"Partial Dependence Plot for '{feature_name}' (Class {self.target_class})"
         else:
-            ax.set_title(f"Partial Dependence Plot for '{feature_name}'")
-        ax.grid(True, linestyle='--', alpha=0.3)
-        ax.legend()
+            title = f"Partial Dependence Plot for '{feature_name}'"
+        
+        if is_categorical:
+            title += f"\n[Categorical: {n_unique} categories]"
+        else:
+            title += f"\n[Continuous: {n_unique} unique values]"
+        
+        ax.set_title(title, fontsize=11)
         
         plt.tight_layout()
         
@@ -367,10 +505,10 @@ class ModelAnalyzer:
         ax.set_xlabel("Tree Index")
         ax.set_ylabel("Predicted Probability")
         if self.num_classes and self.num_classes > 2:
-            ax.set_title(f"Class {self.target_class} Probability Evolution Across Trees")
+            ax.set_title(f"Class {self.target_class} Early Exit Score Across Trees")
         else:
             # Binary classification - show probability evolution too
-            ax.set_title("Probability Evolution Across Trees (Binary Classification)")
+            ax.set_title("Early Exit Score Across Trees (Binary Classification)")
         ax.legend()
         ax.grid(True)
         
