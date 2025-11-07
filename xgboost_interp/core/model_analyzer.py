@@ -228,7 +228,7 @@ class ModelAnalyzer:
     
     def plot_partial_dependence(self, feature_name: str, grid_points: int = 20,
                                n_curves: int = 1000, categorical_threshold: int = 250,
-                               mode: str = "logit") -> None:
+                               mode: str = "raw") -> None:
         """
         Plot partial dependence for a feature with automatic categorical detection.
         
@@ -240,7 +240,10 @@ class ModelAnalyzer:
             grid_points: Number of grid points for continuous features
             n_curves: Number of data points to use for PDP computation
             categorical_threshold: Max unique values to treat as categorical (default: 250)
-            mode: "logit" (default) or "probability" - Y-axis scale for plotting
+            mode: "raw" (default), "probability", or "logit" - Y-axis scale
+                - "raw": Probability without base_score correction (original behavior)
+                - "probability": Probability with base_score correction
+                - "logit": Logit with base_score correction
         """
         self._check_data_and_model()
         
@@ -267,33 +270,40 @@ class ModelAnalyzer:
         print(f"Computing PDP for '{feature_name}' (index {feat_idx})")
         print(f"  Type: {feature_type} ({n_unique} unique values), using {grid_info}")
         
-        # Compute PDP using sklearn (fast), then apply base_score correction
-        if not self._base_score_computed:
-            self._compute_base_score_adjustment(X_base.head(min(100, len(X_base))))
-        
+        # Compute PDP using sklearn (fast)
         averaged, ice_curves, grid_values = self._compute_pdp(
             X_base, feat_idx, unique_values, is_categorical, grid_points
         )
         
-        # Apply base_score correction (convert prob -> logit -> adjust)
-        averaged = np.clip(averaged, 1e-7, 1 - 1e-7)
-        averaged_logits = scipy_logit(averaged) + self.base_score_adjustment
+        # Apply transformations based on mode
+        if mode == "raw":
+            # Raw mode: use sklearn's probabilities directly (no base_score correction)
+            pass  # averaged and ice_curves are already probabilities from sklearn
         
-        if ice_curves is not None:
-            ice_curves = np.clip(ice_curves, 1e-7, 1 - 1e-7)
-            ice_logits = scipy_logit(ice_curves) + self.base_score_adjustment
+        elif mode == "probability" or mode == "logit":
+            # For corrected modes: apply base_score correction
+            if not self._base_score_computed:
+                self._compute_base_score_adjustment(X_base.head(min(100, len(X_base))))
+            
+            # Convert prob -> logit -> adjust
+            averaged = np.clip(averaged, 1e-7, 1 - 1e-7)
+            averaged_logits = scipy_logit(averaged) + self.base_score_adjustment
+            
+            if ice_curves is not None:
+                ice_curves = np.clip(ice_curves, 1e-7, 1 - 1e-7)
+                ice_logits = scipy_logit(ice_curves) + self.base_score_adjustment
+            else:
+                ice_logits = None
+            
+            # Convert to final scale
+            if mode == "probability":
+                averaged = expit(averaged_logits)
+                ice_curves = expit(ice_logits) if ice_logits is not None else None
+            else:  # mode == "logit"
+                averaged = averaged_logits
+                ice_curves = ice_logits
         else:
-            ice_logits = None
-        
-        # Convert to final scale based on mode
-        if mode == "probability":
-            averaged = expit(averaged_logits)
-            ice_curves = expit(ice_logits) if ice_logits is not None else None
-        elif mode == "logit":
-            averaged = averaged_logits
-            ice_curves = ice_logits
-        else:
-            raise ValueError(f"Invalid mode '{mode}'. Must be 'logit' or 'probability'")
+            raise ValueError(f"Invalid mode '{mode}'. Must be 'raw', 'probability', or 'logit'")
         
         # Create and save plot
         self._plot_and_save_pdp(
@@ -343,7 +353,12 @@ class ModelAnalyzer:
         fig, ax = plt.subplots(figsize=(14, 5))
         
         # Set ylabel based on mode
-        ylabel = "Predicted Logit" if mode == "logit" else "Predicted Probability"
+        if mode == "logit":
+            ylabel = "Predicted Logit"
+        elif mode == "raw":
+            ylabel = "Predicted Probability (Raw)"
+        else:  # probability
+            ylabel = "Predicted Probability (Corrected)"
         
         if is_categorical:
             # Bar plot for categorical features
@@ -466,7 +481,7 @@ class ModelAnalyzer:
         plt.close()
     
     def plot_scores_across_trees(self, tree_indices: List[int], 
-                                n_records: int = 1000, mode: str = "logit") -> None:
+                                n_records: int = 1000, mode: str = "raw") -> None:
         """
         Plot prediction evolution at different tree stopping points.
         
@@ -476,7 +491,10 @@ class ModelAnalyzer:
         Args:
             tree_indices: List of tree indices to evaluate
             n_records: Number of records to analyze
-            mode: "logit" (default) or "probability" - Y-axis scale for plotting
+            mode: "raw" (default), "probability", or "logit" - Y-axis scale
+                - "raw": Probability without base_score correction (original behavior)
+                - "probability": Probability with base_score correction
+                - "logit": Logit with base_score correction
         """
         self._check_data_and_model()
         
@@ -499,16 +517,24 @@ class ModelAnalyzer:
             else:
                 logits_target = booster.predict(dtest, iteration_range=(0, k), output_margin=True)
             
-            # Apply base_score correction
-            corrected_logits = logits_target + self.base_score_adjustment
+            # Apply transformations based on mode
+            if mode == "raw":
+                # Raw mode: convert to probability without base_score correction
+                scores = expit(logits_target)
             
-            # Convert to final scale based on mode
-            if mode == "probability":
-                scores = expit(corrected_logits)
-            elif mode == "logit":
-                scores = corrected_logits
+            elif mode == "probability" or mode == "logit":
+                # For corrected modes: apply base_score correction
+                if not self._base_score_computed:
+                    self._compute_base_score_adjustment(X.head(min(100, len(X))))
+                
+                corrected_logits = logits_target + self.base_score_adjustment
+                
+                if mode == "probability":
+                    scores = expit(corrected_logits)
+                else:  # mode == "logit"
+                    scores = corrected_logits
             else:
-                raise ValueError(f"Invalid mode '{mode}'. Must be 'logit' or 'probability'")
+                raise ValueError(f"Invalid mode '{mode}'. Must be 'raw', 'probability', or 'logit'")
             
             scores_matrix.append(scores)
         
@@ -529,11 +555,19 @@ class ModelAnalyzer:
                color="blue", linewidth=2, linestyle='--', marker='o', label="Median")
         
         ax.set_xlabel("Tree Index")
-        ylabel = "Predicted Logit" if mode == "logit" else "Predicted Probability"
+        
+        # Set ylabel based on mode
+        if mode == "logit":
+            ylabel = "Predicted Logit"
+        elif mode == "raw":
+            ylabel = "Predicted Probability (Raw)"
+        else:  # probability
+            ylabel = "Predicted Probability (Corrected)"
         ax.set_ylabel(ylabel)
         
         title = f"Class {self.target_class} " if self.num_classes > 2 else ""
-        ax.set_title(f"{title}Early Exit Score Across Trees [{mode.title()} Scale]")
+        mode_label = "Raw" if mode == "raw" else mode.title()
+        ax.set_title(f"{title}Early Exit Score Across Trees [{mode_label} Scale]")
         ax.legend()
         ax.grid(True)
         
@@ -588,8 +622,19 @@ class ModelAnalyzer:
                     if left_child == -1 or right_child == -1:
                         return
                     
+                    # Check that weights exist and are valid
+                    if left_child >= len(weights) or right_child >= len(weights):
+                        return
+                    
+                    left_weight = weights[left_child]
+                    right_weight = weights[right_child]
+                    
+                    # Skip if weights are None or invalid
+                    if left_weight is None or right_weight is None:
+                        return
+                    
                     # Compute probability delta
-                    delta = expit(weights[right_child]) - expit(weights[left_child])
+                    delta = expit(right_weight) - expit(left_weight)
                     
                     thresholds.append(threshold)
                     prob_deltas.append(delta)
@@ -641,9 +686,16 @@ class ModelAnalyzer:
         fig, ax = plt.subplots(figsize=(16, 4))
         
         # Color regions by impact
-        max_abs_value = max(abs(v) for v in region_values)
+        max_abs_value = max(abs(v) for v in region_values if v is not None)
+        max_abs_value = max(max_abs_value, 1e-10)  # Avoid division by zero
+        
         for i in range(len(region_boundaries) - 1):
             value = region_values[i]
+            
+            # Skip None values
+            if value is None:
+                continue
+            
             if value > 0:
                 color, intensity = 'green', np.sqrt(abs(value) / max_abs_value)
             elif value < 0:
