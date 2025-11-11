@@ -309,13 +309,16 @@ class TreeAnalyzer:
         for tree in self.trees:
             split_indices = tree.get("split_indices", [])
             left_children = tree.get("left_children", [])
+            right_children = tree.get("right_children", [])
             
             # Only include actual split nodes (not leaf nodes)
             features_in_tree = set()
             for node_id, feat_idx in enumerate(split_indices):
-                if left_children[node_id] == -1:  # Skip leaf nodes
+                # Skip leaf nodes (both children == -1)
+                is_leaf = (left_children[node_id] == -1 and right_children[node_id] == -1)
+                if is_leaf:
                     continue
-                if 0 <= feat_idx < len(self.feature_names):
+                if 0 <= feat_idx < num_features:
                     features_in_tree.add(self.feature_names[feat_idx])
             
             # Count co-occurrences
@@ -344,18 +347,18 @@ class TreeAnalyzer:
         
         for tree in self.trees:
             split_indices = tree.get("split_indices", [])
-            lefts = tree.get("left_children", [])
-            rights = tree.get("right_children", [])
+            left_children = tree.get("left_children", [])
+            right_children = tree.get("right_children", [])
             
             def dfs(node, path):
                 if node == -1:
                     return
                 
                 # Check if this is a leaf node
-                if lefts[node] == -1 and rights[node] == -1:
+                if left_children[node] == -1 and right_children[node] == -1:
                     # Leaf node - process the path (don't add this node's split_index)
                     features_in_path = set(self.feature_names[i] for i in path 
-                                          if i < len(self.feature_names))
+                                          if 0 <= i < num_features)
                     for f1, f2 in combinations(features_in_path, 2):
                         i, j = self.feature_names.index(f1), self.feature_names.index(f2)
                         co_matrix[i][j] += 1
@@ -367,8 +370,8 @@ class TreeAnalyzer:
                 
                 # Internal node - add to path and recurse
                 path.append(split_indices[node])
-                dfs(lefts[node], path)
-                dfs(rights[node], path)
+                dfs(left_children[node], path)
+                dfs(right_children[node], path)
                 path.pop()
             
             dfs(0, [])
@@ -417,33 +420,19 @@ class TreeAnalyzer:
                 if not (0 <= parent_feat_idx < num_features):
                     continue
                 
-                # Check left child (only count if child is interior, not a leaf)
-                left_child_id = left_children[node_id]
-                if left_child_id != -1 and left_child_id < len(split_indices):
-                    # Check if this child is NOT a leaf (has at least one child itself)
-                    child_is_leaf = (left_children[left_child_id] == -1 and 
-                                    right_children[left_child_id] == -1)
-                    if not child_is_leaf:
-                        # Count this as an opportunity in denominator
-                        parent_children_count[parent_feat_idx] += 1
-                        
-                        child_feat_idx = split_indices[left_child_id]
-                        if 0 <= child_feat_idx < num_features:
-                            parent_child_counts[parent_feat_idx][child_feat_idx] += 1
-                
-                # Check right child (only count if child is interior, not a leaf)
-                right_child_id = right_children[node_id]
-                if right_child_id != -1 and right_child_id < len(split_indices):
-                    # Check if this child is NOT a leaf (has at least one child itself)
-                    child_is_leaf = (left_children[right_child_id] == -1 and 
-                                    right_children[right_child_id] == -1)
-                    if not child_is_leaf:
-                        # Count this as an opportunity in denominator
-                        parent_children_count[parent_feat_idx] += 1
-                        
-                        child_feat_idx = split_indices[right_child_id]
-                        if 0 <= child_feat_idx < num_features:
-                            parent_child_counts[parent_feat_idx][child_feat_idx] += 1
+                # Process both left and right children using a loop to avoid duplication
+                for child_id in [left_children[node_id], right_children[node_id]]:
+                    if child_id != -1 and child_id < len(split_indices):
+                        # Check if this child is NOT a leaf (has at least one child itself)
+                        child_is_leaf = (left_children[child_id] == -1 and 
+                                        right_children[child_id] == -1)
+                        if not child_is_leaf:
+                            # Count this as an opportunity in denominator
+                            parent_children_count[parent_feat_idx] += 1
+                            
+                            child_feat_idx = split_indices[child_id]
+                            if 0 <= child_feat_idx < num_features:
+                                parent_child_counts[parent_feat_idx][child_feat_idx] += 1
         
         # Compute conditional probabilities: P(child | parent)
         dependency_matrix = np.zeros((num_features, num_features), dtype=float)
