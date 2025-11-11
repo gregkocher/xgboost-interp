@@ -277,7 +277,7 @@ class ModelAnalyzer:
         
         # Apply transformations based on mode
         if mode == "raw":
-            # Raw mode: use sklearn's probabilities directly (no base_score correction)
+            # Raw mode: use sklearn's probabilities directly (uncorrected base_score)
             pass  # averaged and ice_curves are already probabilities from sklearn
         
         elif mode == "probability" or mode == "logit":
@@ -356,7 +356,7 @@ class ModelAnalyzer:
         if mode == "logit":
             ylabel = "Predicted Logit"
         elif mode == "raw":
-            ylabel = "Model Score (no base_score)"
+            ylabel = "Model Score (uncorrected base_score)"
         else:  # probability
             ylabel = "Predicted Probability"
         
@@ -588,7 +588,7 @@ class ModelAnalyzer:
         if mode == "logit":
             ylabel = "Predicted Logit"
         elif mode == "raw":
-            ylabel = "Model Score (no base_score)"
+            ylabel = "Model Score (uncorrected base_score)"
         else:  # probability
             ylabel = "Predicted Probability"
         ax.set_ylabel(ylabel)
