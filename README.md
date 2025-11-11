@@ -200,6 +200,12 @@ Symmetric matrix showing how often pairs of features appear on the same root-to-
 ![Path-Level Co-occurrence](docs/images/feature_cooccurrence_path_level.png)
 *California Housing dataset - reveals tighter feature interactions along decision paths*
 
+#### Sequential Feature Co-occurrence
+Asymmetric matrix showing conditional probabilities: when a feature (row) splits, what's the probability that another feature (column) is the immediate next split? This reveals directional parent→child feature dependencies in the tree structure.
+
+![Sequential Co-occurrence](docs/images/feature_cooccurrence_sequential.png)
+*California Housing dataset - shows which features tend to follow others in decision paths. High values indicate strong sequential dependencies (e.g., after splitting on feature A, the model frequently splits on feature B next)*
+
 #### Feature Gain Distribution
 Distribution of gain values across all splits for each feature.
 
@@ -246,8 +252,10 @@ The main class for tree-level analysis that doesn't require data.
 - `plot_gain_stats_per_tree()`: Gain distribution across trees
 - `compute_tree_level_feature_cooccurrence()`: Compute features appearing in same tree
 - `compute_path_level_feature_cooccurrence()`: Compute features on same decision paths
+- `compute_sequential_feature_dependency()`: Compute parent→child feature dependencies
 - `plot_tree_level_feature_cooccurrence()`: Plot tree-level co-occurrence heatmap
 - `plot_path_level_feature_cooccurrence()`: Plot path-level co-occurrence heatmap
+- `plot_sequential_feature_dependency()`: Plot sequential feature co-occurrence heatmap
 
 ### ModelAnalyzer
 

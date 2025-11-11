@@ -103,10 +103,18 @@ def run_all_tree_level_analysis(tree_analyzer):
         print(f"⚠️ Error: {e}")
     
     # 9. Path-level feature co-occurrence
-    print("\n[9/15] Generating path-level feature co-occurrence heatmap...")
+    print("\n[9/16] Generating path-level feature co-occurrence heatmap...")
     try:
         tree_analyzer.plot_path_level_feature_cooccurrence()
         print("✅ Generated: feature_cooccurrence_path_level.png")
+    except Exception as e:
+        print(f"⚠️ Error: {e}")
+    
+    # 10. Sequential feature dependency
+    print("\n[10/16] Generating sequential feature dependency heatmap...")
+    try:
+        tree_analyzer.plot_sequential_feature_dependency()
+        print("✅ Generated: feature_cooccurrence_sequential.png")
     except Exception as e:
         print(f"⚠️ Error: {e}")
     
@@ -114,8 +122,8 @@ def run_all_tree_level_analysis(tree_analyzer):
     feature_plotter = FeaturePlotter(tree_analyzer.plotter.save_dir)
     tree_plotter = TreePlotter(tree_analyzer.plotter.save_dir)
     
-    # 10. Feature usage heatmap
-    print("\n[10/15] Generating feature usage heatmap...")
+    # 11. Feature usage heatmap
+    print("\n[11/16] Generating feature usage heatmap...")
     try:
         feature_plotter.plot_feature_usage_heatmap(
             tree_analyzer.trees, 
@@ -126,8 +134,8 @@ def run_all_tree_level_analysis(tree_analyzer):
     except Exception as e:
         print(f"⚠️ Error: {e}")
     
-    # 11. Split depth per feature
-    print("\n[11/15] Generating split depth per feature plot...")
+    # 12. Split depth per feature
+    print("\n[12/16] Generating split depth per feature plot...")
     try:
         feature_plotter.plot_split_depth_per_feature(
             tree_analyzer.trees, 
@@ -137,8 +145,8 @@ def run_all_tree_level_analysis(tree_analyzer):
     except Exception as e:
         print(f"⚠️ Error: {e}")
     
-    # 12. Feature split impact
-    print("\n[12/15] Generating feature split impact plot...")
+    # 13. Feature split impact
+    print("\n[13/16] Generating feature split impact plot...")
     try:
         feature_plotter.plot_feature_split_impact(
             tree_analyzer.trees, 
@@ -150,7 +158,7 @@ def run_all_tree_level_analysis(tree_analyzer):
         print(f"⚠️ Error: {e}")
     
     # 13. Prediction and gain statistics
-    print("\n[13/15] Generating prediction and gain statistics plots...")
+    print("\n[14/16] Generating prediction and gain statistics plots...")
     try:
         tree_plotter.plot_prediction_and_gain_stats(
             tree_analyzer.trees, 
@@ -164,7 +172,7 @@ def run_all_tree_level_analysis(tree_analyzer):
         print(f"⚠️ Error: {e}")
     
     # 14. Gain heatmap
-    print("\n[14/15] Generating gain heatmap...")
+    print("\n[15/16] Generating gain heatmap...")
     try:
         tree_plotter.plot_gain_heatmap(
             tree_analyzer.trees, 
@@ -175,7 +183,7 @@ def run_all_tree_level_analysis(tree_analyzer):
         print(f"⚠️ Error: {e}")
     
     # 15. Marginal impact analysis (NO DATA REQUIRED)
-    print("\n[15/16] Generating marginal impact plots for all features...")
+    print("\n[16/16] Generating marginal impact plots for all features...")
     print("(This analyzes tree structure only - no data needed)")
     
     # Create a temporary ModelAnalyzer just for marginal impact (doesn't need data loaded)

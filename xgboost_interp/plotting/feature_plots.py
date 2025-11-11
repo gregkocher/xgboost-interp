@@ -36,7 +36,8 @@ class FeaturePlotter(BasePlotter):
         fig, ax = plt.subplots(figsize=fig_size)
         
         heatmap = sns.heatmap(matrix, xticklabels=labels, yticklabels=labels, 
-                   cmap="viridis", square=True, ax=ax, cbar_kws={'label': ''})
+                   cmap="YlGnBu", square=True, ax=ax, cbar_kws={'label': ''},
+                   linewidths=0.5, linecolor='black')
         
         # Make colorbar text bigger
         cbar = heatmap.collections[0].colorbar

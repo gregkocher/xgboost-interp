@@ -375,6 +375,84 @@ class TreeAnalyzer:
         
         return co_matrix, self.feature_names
     
+    def compute_sequential_feature_dependency(self) -> tuple:
+        """
+        Compute asymmetric matrix showing rate of feature B following feature A.
+        
+        Conditional probability calculation:
+        - P(feature_j follows feature_i) = (# times j is child of i) / (# times i is interior node)
+        - Denominator: Only counts interior nodes (nodes with at least one child)
+        - Numerator: Counts both left and right children separately
+        - If feature B appears in BOTH children of A, it's counted twice
+        
+        Returns:
+            tuple: (dependency_matrix, feature_names) 
+                   dependency_matrix is [F x F] with values in [0, 1]
+        """
+        import numpy as np
+        
+        num_features = len(self.feature_names)
+        
+        # Denominator: count of CHILDREN opportunities per feature
+        # (count how many non-leaf children each parent feature has)
+        parent_children_count = np.zeros(num_features, dtype=int)
+        
+        # Numerator: count of parent→child pairs
+        parent_child_counts = np.zeros((num_features, num_features), dtype=int)
+        
+        for tree in self.trees:
+            split_indices = tree.get("split_indices", [])
+            left_children = tree.get("left_children", [])
+            right_children = tree.get("right_children", [])
+            
+            for node_id, parent_feat_idx in enumerate(split_indices):
+                # CRITICAL: Skip leaf nodes from denominator
+                # In XGBoost, leaf nodes have BOTH children == -1
+                # After pruning, interior nodes may have only 1 child (either left or right)
+                is_leaf = (left_children[node_id] == -1 and right_children[node_id] == -1)
+                if is_leaf:
+                    continue
+                
+                # Validate feature index
+                if not (0 <= parent_feat_idx < num_features):
+                    continue
+                
+                # Check left child (only count if child is interior, not a leaf)
+                left_child_id = left_children[node_id]
+                if left_child_id != -1 and left_child_id < len(split_indices):
+                    # Check if this child is NOT a leaf (has at least one child itself)
+                    child_is_leaf = (left_children[left_child_id] == -1 and 
+                                    right_children[left_child_id] == -1)
+                    if not child_is_leaf:
+                        # Count this as an opportunity in denominator
+                        parent_children_count[parent_feat_idx] += 1
+                        
+                        child_feat_idx = split_indices[left_child_id]
+                        if 0 <= child_feat_idx < num_features:
+                            parent_child_counts[parent_feat_idx][child_feat_idx] += 1
+                
+                # Check right child (only count if child is interior, not a leaf)
+                right_child_id = right_children[node_id]
+                if right_child_id != -1 and right_child_id < len(split_indices):
+                    # Check if this child is NOT a leaf (has at least one child itself)
+                    child_is_leaf = (left_children[right_child_id] == -1 and 
+                                    right_children[right_child_id] == -1)
+                    if not child_is_leaf:
+                        # Count this as an opportunity in denominator
+                        parent_children_count[parent_feat_idx] += 1
+                        
+                        child_feat_idx = split_indices[right_child_id]
+                        if 0 <= child_feat_idx < num_features:
+                            parent_child_counts[parent_feat_idx][child_feat_idx] += 1
+        
+        # Compute conditional probabilities: P(child | parent)
+        dependency_matrix = np.zeros((num_features, num_features), dtype=float)
+        for i in range(num_features):
+            if parent_children_count[i] > 0:
+                dependency_matrix[i, :] = parent_child_counts[i, :] / parent_children_count[i]
+        
+        return dependency_matrix, self.feature_names
+    
     def plot_tree_level_feature_cooccurrence(self) -> None:
         """Plot heatmap of feature co-occurrence at tree level."""
         from ..plotting.feature_plots import FeaturePlotter
@@ -402,6 +480,67 @@ class TreeAnalyzer:
             filename="feature_cooccurrence_path_level.png",
             log_scale=True
         )
+    
+    def plot_sequential_feature_dependency(self, top_n: Optional[int] = None) -> None:
+        """
+        Plot asymmetric heatmap of sequential feature dependencies.
+        
+        Shows: P(feature B follows feature A) as a heatmap.
+        Rows = parent features, Columns = child features.
+        
+        Args:
+            top_n: Show only top N features by total parent occurrences (None for all)
+        """
+        import numpy as np
+        import matplotlib.pyplot as plt
+        import seaborn as sns
+        
+        dependency_matrix, feature_names = self.compute_sequential_feature_dependency()
+        
+        # Filter to top N features if specified
+        if top_n is not None and top_n < len(feature_names):
+            # Rank by how often features appear as parents
+            parent_freq = dependency_matrix.sum(axis=1)
+            top_indices = np.argsort(parent_freq)[::-1][:top_n]
+            
+            dependency_matrix = dependency_matrix[np.ix_(top_indices, top_indices)]
+            feature_names = [feature_names[i] for i in top_indices]
+        
+        # Apply log scaling to match other co-occurrence plots
+        matrix_display = np.log1p(dependency_matrix)
+        
+        # Dynamic figure size based on number of features (same as other co-occurrence plots)
+        fig_size = (max(12, len(feature_names) * 0.25), max(10, len(feature_names) * 0.25))
+        fig, ax = plt.subplots(figsize=fig_size)
+        
+        # Use YlGnBu colormap (lighter) with grid lines to match other co-occurrence plots
+        heatmap = sns.heatmap(
+            matrix_display,
+            xticklabels=feature_names,
+            yticklabels=feature_names,
+            cmap='YlGnBu',
+            square=True,
+            ax=ax,
+            cbar_kws={'label': ''},
+            linewidths=0.5,
+            linecolor='black'
+        )
+        
+        # Make colorbar text bigger (match other plots)
+        cbar = heatmap.collections[0].colorbar
+        cbar.ax.tick_params(labelsize=16)
+        
+        # Use same font sizes as other co-occurrence plots
+        ax.set_xticklabels(feature_names, rotation=45, fontsize=6, ha='right')
+        ax.set_yticklabels(feature_names, fontsize=6)
+        ax.set_title('Sequential Feature Co-occurrence', fontsize=20)
+        
+        plt.tight_layout()
+        
+        # Save
+        filepath = os.path.join(self.plotter.save_dir, 'feature_cooccurrence_sequential.png')
+        plt.savefig(filepath, dpi=300, bbox_inches='tight')
+        plt.close()
     
     def plot_feature_importance_scatter(self, top_n: Optional[int] = None, 
                                        min_size: int = 50, max_size: int = 1000) -> None:
