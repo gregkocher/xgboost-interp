@@ -221,7 +221,7 @@ def run_all_tree_level_analysis(tree_analyzer):
     print("="*70)
 
 
-def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, target_class=None):
+def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, target_class=None, plotting_mode='raw'):
     """
     Run ALL data-dependent analysis functions.
     
@@ -237,10 +237,12 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
         tree_analyzer: TreeAnalyzer instance
         data_dir: Directory containing parquet files
         target_class: Target class for multi-class models (None for binary/regression)
+        plotting_mode: Y-axis mode for PDPs and score plots ('raw', 'probability', or 'logit')
     """
     print("\n" + "="*70)
     print("PART 2: DATA-DEPENDENT ANALYSIS (Requires Data)")
     print("="*70)
+    print(f"Plotting mode: {plotting_mode}")
     
     # Load data
     print("\n[1/5] Loading data from parquet files...")
@@ -273,7 +275,8 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
             model_analyzer.plot_partial_dependence(
                 feature_name=feature,
                 grid_points=50,
-                n_curves=min(1000, len(model_analyzer.df))
+                n_curves=min(1000, len(model_analyzer.df)),
+                mode=plotting_mode
             )
             pdp_success_count += 1
             print(f"  ✅ Generated: pdp/{feature}.png")
@@ -302,7 +305,8 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
         print(f"  Analyzing predictions at tree indices: {tree_indices}")
         model_analyzer.plot_scores_across_trees(
             tree_indices=tree_indices,
-            n_records=min(1000, len(model_analyzer.df))
+            n_records=min(1000, len(model_analyzer.df)),
+            mode=plotting_mode
         )
         print("  ✅ Generated: scores_across_trees.png")
     except Exception as e:
@@ -428,6 +432,12 @@ Examples:
   
   # Multi-class model - analyze specific class
   python user_model_complete_analysis.py model.json data_directory/ --target-class 0
+  
+  # Use different plotting mode (probability with corrected base_score)
+  python user_model_complete_analysis.py model.json data_directory/ --plotting_mode probability
+  
+  # Use logit scale for plots
+  python user_model_complete_analysis.py model.json data_directory/ --plotting_mode logit
 
 For multi-class models, you can run this script multiple times with different
 --target-class values to analyze each class separately.
@@ -451,6 +461,14 @@ For multi-class models, you can run this script multiple times with different
         type=int,
         default=None,
         help='Target class index for multi-class models (default: None for binary/regression, 0 for multi-class)'
+    )
+    
+    parser.add_argument(
+        '--plotting_mode',
+        type=str,
+        default='raw',
+        choices=['raw', 'probability', 'logit'],
+        help='Y-axis mode for PDPs and score evolution plots (default: raw). Options: raw, probability, logit'
     )
     
     args = parser.parse_args()
@@ -501,7 +519,8 @@ For multi-class models, you can run this script multiple times with different
                 model_analyzer, 
                 tree_analyzer, 
                 args.data_dir,
-                args.target_class
+                args.target_class,
+                args.plotting_mode
             )
         except Exception as e:
             print(f"❌ Failed to run data-dependent analysis: {e}")
