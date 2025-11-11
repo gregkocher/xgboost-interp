@@ -110,8 +110,8 @@ def run_all_tree_level_analysis(tree_analyzer):
     except Exception as e:
         print(f"⚠️ Error: {e}")
     
-    # 10. Sequential feature dependency
-    print("\n[10/16] Generating sequential feature dependency heatmap...")
+    # 10. Sequential feature co-occurrence
+    print("\n[10/16] Generating sequential feature co-occurrence heatmap...")
     try:
         tree_analyzer.plot_sequential_feature_dependency()
         print("✅ Generated: feature_cooccurrence_sequential.png")
