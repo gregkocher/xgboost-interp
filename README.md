@@ -203,7 +203,8 @@ Symmetric matrix showing how often pairs of features appear on the same root-to-
 #### Sequential Feature Co-occurrence
 Asymmetric matrix showing conditional probabilities: when a feature (row) splits, what's the probability that another feature (column) is the immediate next split? This reveals directional parent→child feature dependencies in the tree structure.
 
-![Sequential Co-occurrence](docs/images/feature_cooccurrence_sequential.png)
+![Sequential Feature Co-occurrence](docs/images/feature_cooccurrence_sequential.png)
+
 *California Housing dataset - shows which features tend to follow others in decision paths. High values indicate strong sequential dependencies (e.g., after splitting on feature A, the model frequently splits on feature B next)*
 
 #### Feature Gain Distribution
