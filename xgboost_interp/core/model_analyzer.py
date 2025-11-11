@@ -356,9 +356,9 @@ class ModelAnalyzer:
         if mode == "logit":
             ylabel = "Predicted Logit"
         elif mode == "raw":
-            ylabel = "Predicted Probability (Raw)"
+            ylabel = "Model Score (no base_score)"
         else:  # probability
-            ylabel = "Predicted Probability (Corrected)"
+            ylabel = "Predicted Probability"
         
         if is_categorical:
             # Bar plot for categorical features
@@ -394,6 +394,10 @@ class ModelAnalyzer:
             ax.set_ylabel(ylabel)
             ax.grid(True, linestyle='--', alpha=0.3)
             ax.legend()
+        
+        # Hide Y-axis tick labels in raw mode (values aren't actual probabilities)
+        if mode == "raw":
+            ax.set_yticklabels([])
         
         ax.set_xlabel(feature_name)
         
@@ -584,9 +588,9 @@ class ModelAnalyzer:
         if mode == "logit":
             ylabel = "Predicted Logit"
         elif mode == "raw":
-            ylabel = "Predicted Probability (Raw)"
+            ylabel = "Model Score (no base_score)"
         else:  # probability
-            ylabel = "Predicted Probability (Corrected)"
+            ylabel = "Predicted Probability"
         ax.set_ylabel(ylabel)
         
         title = f"Class {self.target_class} " if self.num_classes > 2 else ""
