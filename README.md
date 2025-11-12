@@ -12,7 +12,8 @@ A comprehensive toolkit for interpreting and analyzing XGBoost models. This pack
 
 ### Model Analysis with Data
 - **Partial Dependence Plots (PDP)**: Individual Conditional Expectation (ICE) curves with hybrid grid sampling (uniform + percentile)
-- **Accumulated Local Effects (ALE)**: Unbiased feature effect analysis
+- **Accumulated Local Effects (ALE)**: Unbiased feature effect analysis accounting for feature correlations
+- **SHAP Analysis**: SHapley Additive exPlanations for model-agnostic feature importance
 - **Prediction Analysis**: Score evolution across tree ensembles
 - **Marginal Impact**: Feature-specific prediction changes
 
@@ -44,7 +45,12 @@ pip install xgboost-interp[interactive]
 
 For ALE plots:
 ```bash
-pip install xgboost-interp[ale]
+pip install PyALE
+```
+
+For SHAP analysis:
+```bash
+pip install shap
 ```
 
 ## Quick Start
@@ -206,6 +212,25 @@ Asymmetric matrix showing conditional probabilities: when a feature (row) splits
 ![Sequential Feature Co-occurrence](docs/images/feature_cooccurrence_sequential.png)
 
 *California Housing dataset - shows which features tend to follow others in decision paths. High values indicate strong sequential dependencies (e.g., after splitting on feature A, the model frequently splits on feature B next)*
+
+#### Accumulated Local Effects (ALE) Plot
+Unbiased feature effect visualization that accounts for feature correlations. ALE plots show the marginal effect of a feature on predictions while properly handling correlated features, making them superior to PDPs when features are correlated.
+
+![ALE Plot](docs/images/ALE_HouseAge.png)
+*California Housing dataset - ALE plot for HouseAge showing the local effect on house value predictions. The shaded region indicates 95% confidence intervals. The plot reveals a non-linear relationship where house age has varying impacts on value across different age ranges.*
+
+#### SHAP Analysis
+SHAP (SHapley Additive exPlanations) provides model-agnostic explanations by computing the contribution of each feature to individual predictions.
+
+**SHAP Summary Beeswarm Plot**: Shows feature importance and effect direction across all samples.
+
+![SHAP Summary](docs/images/summary_beeswarm.png)
+*California Housing dataset - each dot represents a sample, colored by feature value (red=high, blue=low). Position on x-axis shows impact on prediction. MedInc (median income) has the strongest effect, with high values consistently pushing predictions higher.*
+
+**SHAP Waterfall Plot**: Explains individual predictions by showing how each feature pushes the prediction from the base value.
+
+![SHAP Waterfall](docs/images/waterfall_sample_2.png)
+*California Housing dataset - waterfall plot for sample 2. Starting from the base value (E[f(x)] = 2.07), features like MedInc (+0.47) and Latitude (+0.37) push the prediction higher, while AveOccup (-0.04) slightly reduces it. Final prediction: f(x) = 2.99.*
 
 #### Feature Gain Distribution
 Distribution of gain values across all splits for each feature.
