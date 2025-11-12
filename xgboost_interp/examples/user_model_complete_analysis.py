@@ -354,6 +354,72 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
         print("  ⚠️ pyALE not installed - skipping ALE plots")
         print("     Install with: pip install pyALE")
     
+    # SHAP Analysis
+    print("\n[BONUS] Attempting to generate SHAP analysis plots...")
+    try:
+        import shap
+        import matplotlib.pyplot as plt
+        print("  SHAP detected! Generating comprehensive SHAP analysis...")
+        
+        # Sample 1000 rows for SHAP computation - only use model features
+        X_sample = model_analyzer.df[tree_analyzer.feature_names].sample(n=min(1000, len(model_analyzer.df)), random_state=42)
+        
+        # Create SHAP explainer using TreeExplainer
+        print(f"  Creating TreeExplainer for {len(X_sample)} samples...")
+        explainer = shap.TreeExplainer(model_analyzer.xgb_model)
+        print("  Computing SHAP values...")
+        shap_values = explainer(X_sample)
+        
+        # Create output directories
+        shap_dir = os.path.join(tree_analyzer.plotter.save_dir, 'SHAP_analysis')
+        shap_dep_dir = os.path.join(shap_dir, 'SHAP_dependence_plots')
+        os.makedirs(shap_dir, exist_ok=True)
+        os.makedirs(shap_dep_dir, exist_ok=True)
+        
+        # 1. Summary Bar Plot (mean absolute SHAP values)
+        print("  [1/4] Generating summary bar plot...")
+        plt.figure()
+        shap.summary_plot(shap_values, X_sample, plot_type="bar", show=False)
+        plt.tight_layout()
+        plt.savefig(os.path.join(shap_dir, 'summary_bar.png'), dpi=300, bbox_inches='tight')
+        plt.close()
+        print("  ✅ Generated: SHAP_analysis/summary_bar.png")
+        
+        # 2. Summary Beeswarm Plot (SHAP value distributions)
+        print("  [2/4] Generating summary beeswarm plot...")
+        plt.figure()
+        shap.summary_plot(shap_values, X_sample, show=False)
+        plt.tight_layout()
+        plt.savefig(os.path.join(shap_dir, 'summary_beeswarm.png'), dpi=300, bbox_inches='tight')
+        plt.close()
+        print("  ✅ Generated: SHAP_analysis/summary_beeswarm.png")
+        
+        # 3. Dependence Plots (one per feature)
+        print(f"  [3/4] Generating dependence plots for {len(tree_analyzer.feature_names)} features...")
+        for i, feature in enumerate(tree_analyzer.feature_names):
+            plt.figure()
+            shap.dependence_plot(i, shap_values.values, X_sample, show=False)
+            plt.tight_layout()
+            plt.savefig(os.path.join(shap_dep_dir, f'dependence_{feature}.png'), dpi=300, bbox_inches='tight')
+            plt.close()
+        print(f"  ✅ Generated: SHAP_analysis/SHAP_dependence_plots/ ({len(tree_analyzer.feature_names)} plots)")
+        
+        # 4. Waterfall Plots (first 5 samples)
+        print("  [4/4] Generating waterfall plots for first 5 samples...")
+        for idx in range(min(5, len(X_sample))):
+            plt.figure()
+            shap.waterfall_plot(shap_values[idx], show=False)
+            plt.tight_layout()
+            plt.savefig(os.path.join(shap_dir, f'waterfall_sample_{idx}.png'), dpi=300, bbox_inches='tight')
+            plt.close()
+        print(f"  ✅ Generated: SHAP_analysis/waterfall_sample_0-{min(5, len(X_sample))-1}.png")
+        
+        print(f"\n   SHAP analysis plots saved in: {shap_dir}")
+        
+    except ImportError:
+        print("  ⚠️ shap not installed - skipping SHAP analysis")
+        print("     Install with: pip install shap")
+    
     print("\n" + "="*70)
     print("✅ PART 2 COMPLETE - All data-dependent analysis finished!")
     print("="*70)
