@@ -326,9 +326,6 @@ The script is designed to be readable and modifiable:
 # Number of ICE curves in PDPs
 n_curves=1000  # Reduce for faster generation
 
-# Grid resolution for PDPs
-grid_points=50  # Reduce for faster generation
-
 # Number of interactive trees
 num_trees_to_plot=5  # Increase to visualize more trees
 

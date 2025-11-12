@@ -1024,7 +1024,7 @@ class ModelAnalyzer:
         ax.set_ylabel("Δ Probability")
         
         title = (f"Marginal Impact of '{feature_name}' on Class {self.target_class} Probability" 
-                if self.num_classes > 2 
+                if self.num_classes is not None and self.num_classes > 2 
                 else f"Marginal Impact of '{feature_name}' on Predicted Probability")
         ax.set_title(title)
         ax.legend()
