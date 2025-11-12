@@ -181,6 +181,79 @@ def analyze_iris_model(model_path, data_df, feature_names):
             print(f"✅ Generated scores across trees plot")
         except Exception as e:
             print(f"⚠️ Could not generate scores across trees: {e}")
+        
+        # ALE Plots
+        print(f"\n[BONUS] Generating ALE plots for class {target_class} ({class_names[target_class]})...")
+        try:
+            from PyALE import ale
+            for i, feature in enumerate(feature_names, 1):
+                print(f"  [{i}/{len(feature_names)}] Computing ALE for '{feature}'...")
+                model_analyzer.plot_ale(
+                    feature_name=feature,
+                    grid_size=100,
+                    include_CI=True,
+                    n_curves=min(10000, len(model_analyzer.df))
+                )
+            print(f"  ✅ Generated {len(feature_names)} ALE plots in ALE_analysis/")
+        except ImportError:
+            print("  ⚠️ PyALE not installed - skipping ALE plots")
+        except Exception as e:
+            print(f"  ⚠️ Failed to generate ALE plots: {e}")
+        
+        # SHAP Analysis
+        print(f"\n[BONUS] Generating SHAP analysis for class {target_class} ({class_names[target_class]})...")
+        try:
+            import shap
+            import matplotlib.pyplot as plt
+            
+            X_sample = model_analyzer.df[feature_names].sample(n=min(1000, len(model_analyzer.df)), random_state=42)
+            
+            explainer = shap.TreeExplainer(model_analyzer.xgb_model)
+            shap_values = explainer(X_sample)
+            
+            # For multi-class models, extract SHAP values for the target class
+            if hasattr(shap_values, 'values') and len(shap_values.values.shape) == 3:
+                # Multi-class: shape is (n_samples, n_features, n_classes)
+                class_shap_values = shap_values[:, :, target_class]
+            else:
+                # Binary or single output
+                class_shap_values = shap_values
+            
+            shap_dir = os.path.join(tree_analyzer.plotter.save_dir, f'SHAP_analysis_class_{target_class}')
+            shap_dep_dir = os.path.join(shap_dir, 'SHAP_dependence_plots')
+            os.makedirs(shap_dir, exist_ok=True)
+            os.makedirs(shap_dep_dir, exist_ok=True)
+            
+            # Summary plots
+            plt.figure()
+            shap.summary_plot(class_shap_values, X_sample, plot_type="bar", show=False)
+            plt.savefig(os.path.join(shap_dir, 'summary_bar.png'), dpi=300, bbox_inches='tight')
+            plt.close()
+            
+            plt.figure()
+            shap.summary_plot(class_shap_values, X_sample, show=False)
+            plt.savefig(os.path.join(shap_dir, 'summary_beeswarm.png'), dpi=300, bbox_inches='tight')
+            plt.close()
+            
+            # Dependence plots for all features
+            for i, feature in enumerate(feature_names):
+                plt.figure()
+                shap.dependence_plot(i, class_shap_values.values, X_sample, show=False)
+                plt.savefig(os.path.join(shap_dep_dir, f'dependence_{feature}.png'), dpi=300, bbox_inches='tight')
+                plt.close()
+            
+            # Waterfall plots
+            for idx in range(min(5, len(X_sample))):
+                plt.figure()
+                shap.waterfall_plot(class_shap_values[idx], show=False)
+                plt.savefig(os.path.join(shap_dir, f'waterfall_sample_{idx}.png'), dpi=300, bbox_inches='tight')
+                plt.close()
+            
+            print(f"  ✅ Generated SHAP analysis in SHAP_analysis_class_{target_class}/")
+        except ImportError:
+            print("  ⚠️ shap not installed - skipping SHAP analysis")
+        except Exception as e:
+            print(f"  ⚠️ Failed to generate SHAP analysis: {e}")
     
     print(f"\nAnalysis complete! Plots saved to: {tree_analyzer.plotter.save_dir}")
 

@@ -323,24 +323,17 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
     print("\n[BONUS] Attempting to generate ALE plots (requires pyALE)...")
     try:
         from PyALE import ale
-        print("  pyALE detected! Generating ALE plots for top 5 features...")
+        print("  pyALE detected! Generating ALE plots for all features...")
         
-        # Get top 5 features by importance
-        from collections import Counter
-        weight_counts = Counter()
-        for tree in tree_analyzer.trees:
-            for split_idx in tree.get("split_indices", []):
-                if split_idx < len(feature_names):
-                    weight_counts[feature_names[split_idx]] += 1
+        # Generate ALE for ALL features
+        all_features = tree_analyzer.feature_names
         
-        top_features = [feat for feat, _ in weight_counts.most_common(5)]
-        
-        for i, feature in enumerate(top_features, 1):
+        for i, feature in enumerate(all_features, 1):
             try:
-                print(f"  [{i}/{len(top_features)}] Computing ALE for '{feature}'...")
+                print(f"  [{i}/{len(all_features)}] Computing ALE for '{feature}'...")
                 model_analyzer.plot_ale(
                     feature_name=feature,
-                    grid_size=50,
+                    grid_size=100,
                     include_CI=True,
                     n_curves=min(10000, len(model_analyzer.df))
                 )
@@ -348,7 +341,8 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
             except Exception as e:
                 print(f"  ⚠️ Failed for {feature}: {e}")
         
-        print(f"\n   ALE plots saved in: {tree_analyzer.plotter.save_dir}/ALE_analysis/")
+        print(f"\n   ✅ Generated {len(all_features)} ALE plots")
+        print(f"   ALE plots saved in: {tree_analyzer.plotter.save_dir}/ALE_analysis/")
         
     except ImportError:
         print("  ⚠️ pyALE not installed - skipping ALE plots")

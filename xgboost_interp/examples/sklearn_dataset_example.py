@@ -189,6 +189,71 @@ def analyze_with_interpretability_package(model_path, data_df, feature_names):
     except Exception as e:
         print(f"⚠️ Could not generate interactive plots: {e}")
     
+    # ALE Plots
+    print("\n[BONUS] Generating ALE plots...")
+    try:
+        from PyALE import ale
+        for i, feature in enumerate(feature_names, 1):
+            print(f"  [{i}/{len(feature_names)}] Computing ALE for '{feature}'...")
+            model_analyzer.plot_ale(
+                feature_name=feature,
+                grid_size=100,
+                include_CI=True,
+                n_curves=min(10000, len(model_analyzer.df))
+            )
+        print(f"  ✅ Generated {len(feature_names)} ALE plots in ALE_analysis/")
+    except ImportError:
+        print("  ⚠️ PyALE not installed - skipping ALE plots")
+    except Exception as e:
+        print(f"  ⚠️ Failed to generate ALE plots: {e}")
+    
+    # SHAP Analysis
+    print("\n[BONUS] Generating SHAP analysis...")
+    try:
+        import shap
+        import matplotlib.pyplot as plt
+        
+        X_sample = model_analyzer.df[feature_names].sample(n=min(1000, len(model_analyzer.df)), random_state=42)
+        
+        explainer = shap.TreeExplainer(model_analyzer.xgb_model)
+        shap_values = explainer(X_sample)
+        
+        shap_dir = os.path.join(tree_analyzer.plotter.save_dir, 'SHAP_analysis')
+        shap_dep_dir = os.path.join(shap_dir, 'SHAP_dependence_plots')
+        os.makedirs(shap_dir, exist_ok=True)
+        os.makedirs(shap_dep_dir, exist_ok=True)
+        
+        # Summary plots
+        plt.figure()
+        shap.summary_plot(shap_values, X_sample, plot_type="bar", show=False)
+        plt.savefig(os.path.join(shap_dir, 'summary_bar.png'), dpi=300, bbox_inches='tight')
+        plt.close()
+        
+        plt.figure()
+        shap.summary_plot(shap_values, X_sample, show=False)
+        plt.savefig(os.path.join(shap_dir, 'summary_beeswarm.png'), dpi=300, bbox_inches='tight')
+        plt.close()
+        
+        # Dependence plots for all features
+        for i, feature in enumerate(feature_names):
+            plt.figure()
+            shap.dependence_plot(i, shap_values.values, X_sample, show=False)
+            plt.savefig(os.path.join(shap_dep_dir, f'dependence_{feature}.png'), dpi=300, bbox_inches='tight')
+            plt.close()
+        
+        # Waterfall plots
+        for idx in range(min(5, len(X_sample))):
+            plt.figure()
+            shap.waterfall_plot(shap_values[idx], show=False)
+            plt.savefig(os.path.join(shap_dir, f'waterfall_sample_{idx}.png'), dpi=300, bbox_inches='tight')
+            plt.close()
+        
+        print(f"  ✅ Generated SHAP analysis in SHAP_analysis/")
+    except ImportError:
+        print("  ⚠️ shap not installed - skipping SHAP analysis")
+    except Exception as e:
+        print(f"  ⚠️ Failed to generate SHAP analysis: {e}")
+    
     print(f"\n{'='*60}")
     print("ANALYSIS COMPLETE!")
     print(f"{'='*60}")
