@@ -468,7 +468,7 @@ class ModelAnalyzer:
         self._check_data_and_model()
         
         try:
-            from pyALE import ale
+            from PyALE import ale
         except ImportError:
             raise ImportError("PyALE is required for ALE plots")
         
@@ -492,14 +492,20 @@ class ModelAnalyzer:
         # Create plot
         fig, ax = plt.subplots(figsize=(14, 5))
         
-        ax.plot(ale_eff['feature_values'], ale_eff['ale_values'], 
+        # Extract values from DataFrame - index is feature values, 'eff' column is ALE values
+        feature_values = ale_eff.index.values
+        ale_values = ale_eff['eff'].values
+        
+        ax.plot(feature_values, ale_values, 
                color='blue', linewidth=2, label='ALE')
         
         if include_CI:
+            lower_ci = ale_eff[f'lowerCI_{int(confidence * 100)}%'].values
+            upper_ci = ale_eff[f'upperCI_{int(confidence * 100)}%'].values
             ax.fill_between(
-                ale_eff['feature_values'],
-                ale_eff['ale_values'] - ale_eff['ale_values_std'],
-                ale_eff['ale_values'] + ale_eff['ale_values_std'],
+                feature_values,
+                lower_ci,
+                upper_ci,
                 color='gray', alpha=0.2,
                 label=f"{int(confidence * 100)}% CI"
             )
@@ -512,8 +518,8 @@ class ModelAnalyzer:
         
         plt.tight_layout()
         
-        # Save plot in ALE subdirectory
-        ale_dir = os.path.join(self.tree_analyzer.plotter.save_dir, 'ale')
+        # Save plot in ALE_analysis subdirectory
+        ale_dir = os.path.join(self.tree_analyzer.plotter.save_dir, 'ALE_analysis')
         os.makedirs(ale_dir, exist_ok=True)
         filename = f'ALE_{feature_name}.png'
         filepath = os.path.join(ale_dir, filename)

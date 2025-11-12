@@ -322,7 +322,7 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
     # ALE plots (optional - requires pyALE)
     print("\n[BONUS] Attempting to generate ALE plots (requires pyALE)...")
     try:
-        import pyALE
+        from PyALE import ale
         print("  pyALE detected! Generating ALE plots for top 5 features...")
         
         # Get top 5 features by importance
@@ -344,11 +344,11 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
                     include_CI=True,
                     n_curves=min(10000, len(model_analyzer.df))
                 )
-                print(f"  ✅ Generated: ale/{feature}.png")
+                print(f"  ✅ Generated: ALE_analysis/{feature}.png")
             except Exception as e:
                 print(f"  ⚠️ Failed for {feature}: {e}")
         
-        print(f"\n   ALE plots saved in: {tree_analyzer.plotter.save_dir}/ale/")
+        print(f"\n   ALE plots saved in: {tree_analyzer.plotter.save_dir}/ALE_analysis/")
         
     except ImportError:
         print("  ⚠️ pyALE not installed - skipping ALE plots")
