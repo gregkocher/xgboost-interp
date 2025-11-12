@@ -34,7 +34,6 @@ def analyze_single_class_example():
     # Generate PDP for a feature - this will show how it affects P(setosa)
     model_analyzer.plot_partial_dependence(
         feature_name="petal length (cm)",
-        grid_points=30,
         n_curves=150
     )
     
@@ -71,7 +70,6 @@ def compare_classes_example():
         # Generate class-specific PDP
         model_analyzer.plot_partial_dependence(
             feature_name=feature,
-            grid_points=30,
             n_curves=150
         )
         

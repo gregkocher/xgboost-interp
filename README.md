@@ -11,7 +11,7 @@ A comprehensive toolkit for interpreting and analyzing XGBoost models. This pack
 - **Visualization**: Heatmaps, distributions, and summary statistics
 
 ### Model Analysis with Data
-- **Partial Dependence Plots (PDP)**: Individual Conditional Expectation (ICE) curves
+- **Partial Dependence Plots (PDP)**: Individual Conditional Expectation (ICE) curves with hybrid grid sampling (uniform + percentile)
 - **Accumulated Local Effects (ALE)**: Unbiased feature effect analysis
 - **Prediction Analysis**: Score evolution across tree ensembles
 - **Marginal Impact**: Feature-specific prediction changes
@@ -83,7 +83,7 @@ model_analyzer.load_data_from_parquets("data_directory/")
 model_analyzer.load_xgb_model()
 
 # Generate partial dependence plots
-model_analyzer.plot_partial_dependence("feature_name", grid_points=50)
+model_analyzer.plot_partial_dependence("feature_name")
 
 # Analyze prediction evolution
 model_analyzer.plot_scores_across_trees([100, 500, 1000, 2000])
@@ -168,7 +168,7 @@ Feature-specific prediction changes across all splits in the model. Shows how th
 *Iris dataset - marginal impact of petal length on class 2 probability. Strong positive impact in the 3-4.5cm range (darker green) indicates higher probability for class 2 (virginica). Negative impact below 3cm (red) suggests lower probability. The step function shows exact prediction changes at each split threshold across all 150 trees.*
 
 #### 5. Partial Dependence Plot (PDP)
-Shows how predictions change as a feature varies, with ICE curves for individual samples.
+Shows how predictions change as a feature varies, with ICE curves for individual samples. Uses hybrid grid (100 uniform + 100 percentile points) for comprehensive coverage of continuous features.
 
 ![Partial Dependence Plot](docs/images/PDP_MedInc.png)
 *California Housing dataset - MedInc (median income) shows strong positive relationship with house value*

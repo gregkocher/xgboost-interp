@@ -282,7 +282,6 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
             print(f"  [{i}/{len(feature_names)}] Computing PDP for '{feature}'...")
             model_analyzer.plot_partial_dependence(
                 feature_name=feature,
-                grid_points=50,
                 n_curves=min(1000, len(model_analyzer.df)),
                 mode=plotting_mode
             )

@@ -66,7 +66,6 @@ def model_with_data_example():
         try:
             model_analyzer.plot_partial_dependence(
                 feature_name=feature, 
-                grid_points=50, 
                 n_curves=1000
             )
             print(f"✅ Generated PDP for {feature}")

@@ -120,7 +120,6 @@ def comprehensive_analysis_example():
                 try:
                     model_analyzer.plot_partial_dependence(
                         feature_name=feature, 
-                        grid_points=100, 
                         n_curves=1000
                     )
                     print(f"✅ Generated PDP for {feature}")

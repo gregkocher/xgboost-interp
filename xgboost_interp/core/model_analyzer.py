@@ -226,18 +226,17 @@ class ModelAnalyzer:
         
         return np.array(y_pred)
     
-    def plot_partial_dependence(self, feature_name: str, grid_points: int = 20,
+    def plot_partial_dependence(self, feature_name: str,
                                n_curves: int = 1000, categorical_threshold: int = 250,
                                mode: str = "raw") -> None:
         """
         Plot partial dependence for a feature with automatic categorical detection.
         
         Categorical features (<=250 unique values) are plotted as bar plots.
-        Continuous features use line plots with interpolated grid points.
+        Continuous features use line plots with hybrid grid (100 uniform + 100 percentile points).
         
         Args:
             feature_name: Name of the feature to analyze
-            grid_points: Number of grid points for continuous features
             n_curves: Number of data points to use for PDP computation
             categorical_threshold: Max unique values to treat as categorical (default: 250)
             mode: "raw" (default), "probability", or "logit" - Y-axis scale
@@ -266,13 +265,13 @@ class ModelAnalyzer:
         
         # Print detection info
         feature_type = "CATEGORICAL" if is_categorical else "CONTINUOUS"
-        grid_info = "actual category values" if is_categorical else f"{grid_points} grid points"
+        grid_info = "actual category values" if is_categorical else "hybrid grid (100 uniform + 100 percentile)"
         print(f"Computing PDP for '{feature_name}' (index {feat_idx})")
         print(f"  Type: {feature_type} ({n_unique} unique values), using {grid_info}")
         
         # Compute PDP using sklearn (fast)
         averaged, ice_curves, grid_values = self._compute_pdp(
-            X_base, feat_idx, unique_values, is_categorical, grid_points
+            X_base, feat_idx, unique_values, is_categorical
         )
         
         # Apply transformations based on mode
@@ -310,7 +309,7 @@ class ModelAnalyzer:
             feature_name, grid_values, averaged, ice_curves, is_categorical, n_unique, mode
         )
     
-    def _compute_pdp(self, X_base, feat_idx, unique_values, is_categorical, grid_points):
+    def _compute_pdp(self, X_base, feat_idx, unique_values, is_categorical):
         """Compute PDP using sklearn or fallback to manual computation."""
         from sklearn.inspection import partial_dependence
         
@@ -340,12 +339,49 @@ class ModelAnalyzer:
                 ]
                 return np.array(averaged), None, unique_values
         else:
-            # Continuous features: use sklearn's optimized PDP
+            # Continuous features: use hybrid grid (uniform + percentile)
+            feature_values = X_base.iloc[:, feat_idx].values
+            grid_values = self._create_hybrid_grid(feature_values)
+            
+            # Use custom grid with sklearn (custom_values expects dict with feature index as key)
             pd_result = partial_dependence(
                 self.xgb_model, X_base, features=[feat_idx],
-                grid_resolution=grid_points, kind='both'
+                custom_values={feat_idx: grid_values}, kind='both'
             )
             return pd_result['average'][0], pd_result['individual'][0], pd_result['grid_values'][0]
+    
+    def _create_hybrid_grid(self, feature_values: np.ndarray) -> np.ndarray:
+        """
+        Create hybrid grid combining uniform and percentile-based points.
+        
+        The grid is the union of:
+        - min and max values
+        - 100 uniformly spaced points (including endpoints)
+        - 101 percentile points (0th through 100th percentile)
+        
+        Args:
+            feature_values: Array of feature values from the dataset
+            
+        Returns:
+            Sorted array of unique grid values
+        """
+        import numpy as np
+        
+        min_val = feature_values.min()
+        max_val = feature_values.max()
+        
+        # 100 uniformly spaced points (including min and max)
+        uniform_points = np.linspace(min_val, max_val, num=100)
+        
+        # 101 percentile points (0th through 100th percentile)
+        percentiles = np.linspace(0, 100, num=101)
+        percentile_points = np.percentile(feature_values, percentiles)
+        
+        # Union: combine and get unique sorted values
+        all_points = np.concatenate([uniform_points, percentile_points])
+        grid_values = np.unique(all_points)
+        
+        return grid_values
     
     def _plot_and_save_pdp(self, feature_name, grid_values, averaged, ice_curves, 
                            is_categorical, n_unique, mode):

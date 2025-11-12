@@ -155,7 +155,6 @@ def analyze_iris_model(model_path, data_df, feature_names):
             try:
                 model_analyzer.plot_partial_dependence(
                     feature_name=feature,
-                    grid_points=30,
                     n_curves=150  # All samples
                 )
                 print(f"✅ Generated PDP for {feature}")
