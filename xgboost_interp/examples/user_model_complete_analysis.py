@@ -15,6 +15,7 @@ Requirements:
 import os
 import sys
 import argparse
+import time
 
 # Add the package to path for local development
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -35,6 +36,7 @@ def run_all_tree_level_analysis(tree_analyzer):
     - Advanced tree statistics
     - Marginal impact analysis (tree-level)
     """
+    start_time = time.time()
     print("\n" + "="*70)
     print("PART 1: TREE-LEVEL ANALYSIS (No Data Required)")
     print("="*70)
@@ -224,8 +226,9 @@ def run_all_tree_level_analysis(tree_analyzer):
     except Exception as e:
         print(f"⚠️ Error: {e}")
     
+    elapsed_time = time.time() - start_time
     print("\n" + "="*70)
-    print("✅ PART 1 COMPLETE - All tree-level analysis finished!")
+    print(f"✅ PART 1 COMPLETE - Tree-level analysis finished in {elapsed_time:.2f} seconds ({elapsed_time/60:.2f} minutes)")
     print("="*70)
 
 
@@ -247,6 +250,7 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
         target_class: Target class for multi-class models (None for binary/regression)
         plotting_mode: Y-axis mode for PDPs and score plots ('raw', 'probability', or 'logit')
     """
+    start_time = time.time()
     print("\n" + "="*70)
     print("PART 2: DATA-DEPENDENT ANALYSIS (Requires Data)")
     print("="*70)
@@ -273,6 +277,7 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
     # Partial Dependence Plots for all features
     print("\n[3/4] Generating Partial Dependence Plots (PDPs) for all features...")
     print("This may take a few minutes depending on dataset size...")
+    pdp_start_time = time.time()
     
     feature_names = tree_analyzer.feature_names
     pdp_success_count = 0
@@ -290,7 +295,8 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
         except Exception as e:
             print(f"  ⚠️ Failed for {feature}: {e}")
     
-    print(f"\n✅ Generated {pdp_success_count}/{len(feature_names)} PDP plots")
+    pdp_elapsed = time.time() - pdp_start_time
+    print(f"\n✅ Generated {pdp_success_count}/{len(feature_names)} PDP plots in {pdp_elapsed:.2f}s")
     print(f"   Saved in: {tree_analyzer.plotter.save_dir}/pdp/")
     
     # Prediction evolution across trees
@@ -321,12 +327,14 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
     
     # ALE plots (optional - requires pyALE)
     print("\n[BONUS] Attempting to generate ALE plots (requires pyALE)...")
+    ale_start_time = time.time()
     try:
         from PyALE import ale
         print("  pyALE detected! Generating ALE plots for all features...")
         
         # Generate ALE for ALL features
         all_features = tree_analyzer.feature_names
+        ale_success_count = 0
         
         for i, feature in enumerate(all_features, 1):
             try:
@@ -337,11 +345,13 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
                     include_CI=True,
                     n_curves=min(10000, len(model_analyzer.df))
                 )
+                ale_success_count += 1
                 print(f"  ✅ Generated: ALE_analysis/{feature}.png")
             except Exception as e:
                 print(f"  ⚠️ Failed for {feature}: {e}")
         
-        print(f"\n   ✅ Generated {len(all_features)} ALE plots")
+        ale_elapsed = time.time() - ale_start_time
+        print(f"\n   ✅ Generated {ale_success_count}/{len(all_features)} ALE plots in {ale_elapsed:.2f}s")
         print(f"   ALE plots saved in: {tree_analyzer.plotter.save_dir}/ALE_analysis/")
         
     except ImportError:
@@ -350,6 +360,7 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
     
     # SHAP Analysis
     print("\n[BONUS] Attempting to generate SHAP analysis plots...")
+    shap_start_time = time.time()
     try:
         import shap
         import matplotlib.pyplot as plt
@@ -408,14 +419,17 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
             plt.close()
         print(f"  ✅ Generated: SHAP_analysis/waterfall_sample_0-{min(5, len(X_sample))-1}.png")
         
-        print(f"\n   SHAP analysis plots saved in: {shap_dir}")
+        shap_elapsed = time.time() - shap_start_time
+        print(f"\n   ✅ SHAP analysis complete in {shap_elapsed:.2f}s")
+        print(f"   SHAP analysis plots saved in: {shap_dir}")
         
     except ImportError:
         print("  ⚠️ shap not installed - skipping SHAP analysis")
         print("     Install with: pip install shap")
     
+    elapsed_time = time.time() - start_time
     print("\n" + "="*70)
-    print("✅ PART 2 COMPLETE - All data-dependent analysis finished!")
+    print(f"✅ PART 2 COMPLETE - Data-dependent analysis finished in {elapsed_time:.2f} seconds ({elapsed_time/60:.2f} minutes)")
     print("="*70)
     
     return True
@@ -550,6 +564,7 @@ For multi-class models, you can run this script multiple times with different
         sys.exit(1)
     
     # Print header
+    total_start_time = time.time()
     print("\n" + "="*70)
     print("XGBoost Model Complete Analysis")
     print("="*70)
@@ -641,7 +656,10 @@ For multi-class models, you can run this script multiple times with different
         for i in range(num_classes):
             print(f"      python user_model_complete_analysis.py {args.model_path} {args.data_dir or ''} --target-class {i}")
     
-    print("\n" + "="*70 + "\n")
+    total_elapsed_time = time.time() - total_start_time
+    print("\n" + "="*70)
+    print(f"⏱️  TOTAL EXECUTION TIME: {total_elapsed_time:.2f} seconds ({total_elapsed_time/60:.2f} minutes)")
+    print("="*70 + "\n")
 
 
 if __name__ == "__main__":
