@@ -1,6 +1,6 @@
 # XGBoost Interpretability Package
 
-A comprehensive toolkit for interpreting and analyzing XGBoost models. This package provides tree-level analysis, feature importance visualization, partial dependence plots, and interactive tree exploration.
+A comprehensive toolkit for interpreting and analyzing XGBoost models. This package provides both data agnostic and data-dependent model analysis, including XGBoost tree topology analysis; feature importance visualizations; Partial Dependence Plots (PDP), Individual Conditional Expectation (ICE) plots, and Accumulated Local Effects (ALE) plots; various SHAP analyses; and interactive tree exploration.
 
 ## Features
 
@@ -11,139 +11,32 @@ A comprehensive toolkit for interpreting and analyzing XGBoost models. This pack
 - **Visualization**: Heatmaps, distributions, and summary statistics
 
 ### Model Analysis with Data
-- **Partial Dependence Plots (PDP)**: Individual Conditional Expectation (ICE) curves with hybrid grid sampling (uniform + percentile)
+- **Partial Dependence Plots (PDP)**: Individual Conditional Expectation (ICE) curves overlaid with all-samples average (PDP)
 - **Accumulated Local Effects (ALE)**: Unbiased feature effect analysis accounting for feature correlations
 - **SHAP Analysis**: SHapley Additive exPlanations for model-agnostic feature importance
 - **Prediction Analysis**: Score evolution across tree ensembles
 - **Marginal Impact**: Feature-specific prediction changes
 
 ### Interactive Visualizations
-- **Tree Explorer**: Interactive tree structure visualization with Plotly
-- **Feature Analysis**: Dynamic exploration of feature relationships
-- **Prediction Tracking**: Real-time analysis of model decisions
+- **Tree Explorer**: Interactive tree structure visualization with Plotly, showing all split features and split thresholds
 
-## Installation
 
-```bash
-pip install xgboost-interp
-```
-
-### Development Installation
+## Setup
 
 ```bash
 git clone https://github.com/yourusername/xgboost-interp.git
 cd xgboost-interp
-pip install -e .
+uv sync
+source .venv/bin/activate
 ```
 
-### Optional Dependencies
-
-For interactive plots:
-```bash
-pip install xgboost-interp[interactive]
-```
-
-For ALE plots:
-```bash
-pip install PyALE
-```
-
-For SHAP analysis:
-```bash
-pip install shap
-```
 
 ## Quick Start
 
-### Basic Tree Analysis
-
-```python
-from xgboost_interp import TreeAnalyzer
-
-# Initialize analyzer with your XGBoost model JSON
-analyzer = TreeAnalyzer("your_model.json")
-
-# Print model summary
-analyzer.print_model_summary()
-
-# Generate feature importance plots
-analyzer.plot_feature_importance_combined(top_n=20)
-analyzer.plot_feature_importance_distributions(log_scale=True)
-
-# Analyze tree structure
-analyzer.plot_tree_depth_histogram()
-analyzer.plot_cumulative_gain()
+```bash
+python3 xgboost_interp/examples/user_model_complete_analysis.py your_model.json path/to/parquet/data_dir/
 ```
 
-### Model Analysis with Data
-
-```python
-from xgboost_interp import TreeAnalyzer, ModelAnalyzer
-
-# Initialize analyzers
-tree_analyzer = TreeAnalyzer("your_model.json")
-model_analyzer = ModelAnalyzer(tree_analyzer)
-
-# Load your data
-model_analyzer.load_data_from_parquets("data_directory/")
-model_analyzer.load_xgb_model()
-
-# Generate partial dependence plots
-model_analyzer.plot_partial_dependence("feature_name")
-
-# Analyze prediction evolution
-model_analyzer.plot_scores_across_trees([100, 500, 1000, 2000])
-
-# Plot marginal feature impact
-model_analyzer.plot_marginal_impact_univariate("feature_name")
-```
-
-### Multi-Class Classification Support
-
-For multi-class models, specify which class to analyze:
-
-```python
-from xgboost_interp import TreeAnalyzer, ModelAnalyzer
-
-# Initialize tree analyzer
-tree_analyzer = TreeAnalyzer("multiclass_model.json")
-
-# Analyze class 0 (e.g., setosa in Iris dataset)
-analyzer_class0 = ModelAnalyzer(tree_analyzer, target_class=0)
-analyzer_class0.load_data_from_parquets("data/")
-analyzer_class0.load_xgb_model()
-
-# All plots now show effects on P(class 0)
-analyzer_class0.plot_partial_dependence("feature_name")
-analyzer_class0.plot_marginal_impact_univariate("feature_name")
-analyzer_class0.plot_scores_across_trees([30, 60, 90, 120, 150])
-
-# Analyze class 1
-analyzer_class1 = ModelAnalyzer(tree_analyzer, target_class=1)
-analyzer_class1.load_xgb_model()
-analyzer_class1.plot_partial_dependence("feature_name")
-```
-
-**Key Points:**
-- Specify `target_class` parameter (0, 1, 2, etc.) when creating `ModelAnalyzer`
-- All analysis methods show effects on that specific class probability
-- Each class has its own set of trees in the XGBoost model
-- Plot titles automatically indicate which class is being analyzed
-
-### Interactive Tree Visualization
-
-```python
-from xgboost_interp.plotting import InteractivePlotter
-
-# Create interactive tree plots
-plotter = InteractivePlotter()
-plotter.plot_interactive_trees(
-    trees=tree_analyzer.trees,
-    feature_names=tree_analyzer.feature_names,
-    top_k=10,
-    combined=True
-)
-```
 
 ## Visualization Gallery
 
@@ -308,16 +201,9 @@ See the `examples/` directory for comprehensive usage examples:
 ### Running Examples
 
 ```bash
-# Easy way - use the runner script
-python run_examples.py
-
-# Or run individual examples
+# Run individual examples
 python xgboost_interp/examples/sklearn_dataset_example.py
 python xgboost_interp/examples/iris_classification_example.py
-
-# Analyze your own model (NEW!)
-python xgboost_interp/examples/user_model_complete_analysis.py your_model.json
-python xgboost_interp/examples/user_model_complete_analysis.py your_model.json data_dir/
 ```
 
 The sklearn examples are self-contained and include:
@@ -331,11 +217,9 @@ The sklearn examples are self-contained and include:
 The `user_model_complete_analysis.py` script runs **ALL** available analysis and plotting functions:
 
 ```bash
-# Tree-level analysis only (no data needed) - generates ~15 plots
-python xgboost_interp/examples/user_model_complete_analysis.py model.json
-
-# Complete analysis with data - generates 15+ plots + PDPs + marginal impacts for ALL features
-python xgboost_interp/examples/user_model_complete_analysis.py model.json data_directory/
+# Analyze your own model
+python xgboost_interp/examples/user_model_complete_analysis.py your_model.json
+python xgboost_interp/examples/user_model_complete_analysis.py your_model.json data_dir/
 
 # Multi-class: analyze specific class
 python xgboost_interp/examples/user_model_complete_analysis.py model.json data_dir/ --target-class 0
@@ -388,13 +272,13 @@ If you use this package in your research, please cite:
   title={XGBoost Interpretability Package},
   author={Greg Kocher},
   year={2025},
-  url={https://github.com/yourusername/xgboost-interp}
+  url={https://github.com/gregkocher/xgboost-interp}
 }
 ```
 
 ## Changelog
 
-### v0.1.0 (2025-01-XX)
+### v0.1.0 (2025-10-05)
 - Initial release
 - Tree-level analysis functionality
 - Model analysis with data support
