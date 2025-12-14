@@ -231,13 +231,14 @@ def save_model_and_data(model, X_test, y_test):
     print("=" * 70)
     
     # Save model as JSON
-    model_path = 'criteo_conversion_xgb.json'
+    model_path = 'examples/criteo/criteo_xgb.json'
+    os.makedirs('examples/criteo', exist_ok=True)
     model.save_model(model_path)
     file_size = os.path.getsize(model_path) / (1024 * 1024)
     print(f"\n✅ Saved XGBoost model: {model_path} ({file_size:.1f} MB)")
     
     # Save test data for analysis
-    os.makedirs('criteo_data', exist_ok=True)
+    os.makedirs('examples/criteo/criteo_data', exist_ok=True)
     
     # Sample test data for faster analysis
     sample_size = min(10000, len(X_test))
@@ -247,8 +248,8 @@ def save_model_and_data(model, X_test, y_test):
     df_sample = X_sample.copy()
     df_sample['Label'] = y_sample.values
     
-    df_sample.to_parquet('criteo_data/criteo_test_sample.parquet', index=False)
-    print(f"✅ Saved test data sample ({sample_size:,} records): criteo_data/criteo_test_sample.parquet")
+    df_sample.to_parquet('examples/criteo/criteo_data/criteo_test_sample.parquet', index=False)
+    print(f"✅ Saved test data sample ({sample_size:,} records): examples/criteo/criteo_data/criteo_test_sample.parquet")
     
     return model_path
 
@@ -259,7 +260,7 @@ def run_interpretability_analysis(model_path):
     print("=" * 70)
     
     # Initialize tree analyzer
-    tree_analyzer = TreeAnalyzer(model_path, save_dir='criteo_conversion_xgb')
+    tree_analyzer = TreeAnalyzer(model_path, save_dir='examples/criteo/output')
     
     # Print model summary
     print("\n📊 Model Summary:")
@@ -284,7 +285,7 @@ def run_interpretability_analysis(model_path):
     model_analyzer = ModelAnalyzer(tree_analyzer)
     
     # Load test data
-    model_analyzer.load_data_from_parquets('criteo_data/')
+    model_analyzer.load_data_from_parquets('examples/criteo/criteo_data/')
     model_analyzer.load_xgb_model()
     
     # Get top features for detailed analysis
@@ -342,13 +343,13 @@ def main():
     print("\n" + "=" * 70)
     print("ANALYSIS COMPLETE!")
     print("=" * 70)
-    print(f"\n📁 Output directory: criteo_conversion_xgb/")
+    print(f"\n📁 Output directory: examples/criteo/output/")
     print(f"📊 Model file: {model_path}")
-    print(f"💾 Data file: criteo_data/criteo_test_sample.parquet")
+    print(f"💾 Data file: examples/criteo/criteo_data/criteo_test_sample.parquet")
     
     # Count output files
     import glob
-    plots = glob.glob('criteo_conversion_xgb/*.png')
+    plots = glob.glob('examples/criteo/output/*.png')
     print(f"\n✅ Generated {len(plots)} visualization files:")
     for plot in sorted(plots):
         print(f"  - {os.path.basename(plot)}")

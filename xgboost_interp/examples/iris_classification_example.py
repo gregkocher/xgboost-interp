@@ -40,7 +40,7 @@ def load_and_prepare_iris_data():
     return df, iris.feature_names, iris.target
 
 
-def train_iris_xgboost_model(df, feature_names, target, model_path="iris_xgb.json"):
+def train_iris_xgboost_model(df, feature_names, target, model_path="examples/iris/iris_xgb.json"):
     """Train an XGBoost classification model on Iris."""
     print("\nTraining XGBoost classifier...")
     
@@ -99,7 +99,7 @@ def analyze_iris_model(model_path, data_df, feature_names):
     print(f"{'='*50}")
     
     # Initialize tree analyzer
-    tree_analyzer = TreeAnalyzer(model_path)
+    tree_analyzer = TreeAnalyzer(model_path, save_dir="examples/iris/output")
     tree_analyzer.print_model_summary()
     
     # Tree-level analysis
@@ -130,7 +130,7 @@ def analyze_iris_model(model_path, data_df, feature_names):
         print(f"⚠️ Could not generate interactive plots: {e}")
     
     # Save data for analysis
-    data_dir = "iris_data"
+    data_dir = "examples/iris/iris_data"
     os.makedirs(data_dir, exist_ok=True)
     data_df.to_parquet(f"{data_dir}/iris_data.parquet", index=False)
     
@@ -266,7 +266,7 @@ def compare_feature_importance():
     
     # Load the trained model for comparison
     model = xgb.XGBClassifier()
-    model.load_model("iris_xgb.json")
+    model.load_model("examples/iris/iris_xgb.json")
     
     print("XGBoost built-in feature importance:")
     importance = model.feature_importances_
@@ -293,7 +293,7 @@ def main():
     df, feature_names, target = load_and_prepare_iris_data()
     
     # Train XGBoost model
-    model_path = "iris_xgb.json"
+    model_path = "examples/iris/iris_xgb.json"
     model, X_train, X_test, y_train, y_test = train_iris_xgboost_model(
         df, feature_names, target, model_path
     )

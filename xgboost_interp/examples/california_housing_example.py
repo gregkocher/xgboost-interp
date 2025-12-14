@@ -43,7 +43,7 @@ def load_and_prepare_data():
     return df, housing.feature_names, housing.target
 
 
-def train_xgboost_model(df, feature_names, target, model_path="california_housing_xgb.json"):
+def train_xgboost_model(df, feature_names, target, model_path="examples/california_housing/california_housing_xgb.json"):
     """Train an XGBoost regression model."""
     print("\nTraining XGBoost model...")
     
@@ -103,7 +103,7 @@ def analyze_with_interpretability_package(model_path, data_df, feature_names):
     
     # Initialize tree analyzer
     print("Initializing TreeAnalyzer...")
-    tree_analyzer = TreeAnalyzer(model_path)
+    tree_analyzer = TreeAnalyzer(model_path, save_dir="examples/california_housing/output")
     tree_analyzer.print_model_summary()
     
     # Tree-level analysis
@@ -144,7 +144,7 @@ def analyze_with_interpretability_package(model_path, data_df, feature_names):
     model_analyzer = ModelAnalyzer(tree_analyzer)
     
     # Save data as parquet for the model analyzer
-    data_dir = "housing_data"
+    data_dir = "examples/california_housing/california_housing_data"
     os.makedirs(data_dir, exist_ok=True)
     data_df.to_parquet(f"{data_dir}/housing_data.parquet", index=False)
     
@@ -277,7 +277,7 @@ def main():
     df, feature_names, target = load_and_prepare_data()
     
     # Train XGBoost model
-    model_path = "california_housing_xgb.json"
+    model_path = "examples/california_housing/california_housing_xgb.json"
     model, X_train, X_test, y_train, y_test = train_xgboost_model(
         df, feature_names, target, model_path
     )
@@ -296,8 +296,8 @@ def main():
     
     print(f"\nFiles created:")
     print(f"  - {model_path} (XGBoost model)")
-    print(f"  - housing_data/ (dataset for analysis)")
-    print(f"  - california_housing_xgb/ (visualization outputs)")
+    print(f"  - examples/california_housing/california_housing_data/ (dataset for analysis)")
+    print(f"  - examples/california_housing/output/ (visualization outputs)")
 
 
 if __name__ == "__main__":
