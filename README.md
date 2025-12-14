@@ -80,8 +80,8 @@ Example scripts are located in `xgboost_interp/examples/`:
 
 ```bash
 # Run individual examples
-python xgboost_interp/examples/california_housing_example.py
-python xgboost_interp/examples/iris_classification_example.py
+python3 xgboost_interp/examples/california_housing_example.py
+python3 xgboost_interp/examples/iris_classification_example.py
 ```
 
 The examples are self-contained and include:
@@ -96,11 +96,11 @@ The `user_model_complete_analysis.py` script runs **ALL** available analysis and
 
 ```bash
 # Analyze your own model
-python xgboost_interp/examples/user_model_complete_analysis.py your_model.json
-python xgboost_interp/examples/user_model_complete_analysis.py your_model.json data_dir/
+python3 xgboost_interp/examples/user_model_complete_analysis.py your_model.json
+python3 xgboost_interp/examples/user_model_complete_analysis.py your_model.json data_dir/
 
 # Multi-class: analyze specific class
-python xgboost_interp/examples/user_model_complete_analysis.py model.json data_dir/ --target-class 0
+python3 xgboost_interp/examples/user_model_complete_analysis.py model.json data_dir/ --target-class 0
 ```
 
 This example demonstrates:
