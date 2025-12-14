@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/images/xgboost-interp-logo.png" alt="xgboost-interp logo" width="400">
+</p>
+
 # XGBoost Interpretability Package
 
 A comprehensive toolkit for interpreting and analyzing XGBoost models. This package provides both data agnostic and data-dependent model analysis, including XGBoost tree topology analysis; feature importance visualizations; Partial Dependence Plots (PDP), Individual Conditional Expectation (ICE) plots, and Accumulated Local Effects (ALE) plots; various SHAP analyses; and interactive tree exploration.
@@ -142,71 +146,71 @@ Extended analysis requiring actual data examples.
 #### 1. Cumulative Gain
 Cumulative loss reduction across the tree ensemble.
 
-![Cumulative Gain](docs/images/cumulative_gain.png)
+![Cumulative Gain](docs/assets/images/cumulative_gain.png)
 *California Housing dataset - shows how model improves with each tree*
 
 #### 2. Feature Importance Scatter Plot
 Scatter plot showing feature usage vs gain, with bubble size representing average cover.
 
-![Feature Importance Scatter](docs/images/feature_importance_scatter.png)
+![Feature Importance Scatter](docs/assets/images/feature_importance_scatter.png)
 *California Housing dataset - bubble chart revealing the relationship between feature usage frequency, gain, and cover*
 
 #### 3. Feature Importance Combined
 Combined view of feature importance across weight, gain, and cover metrics.
 
-![Feature Importance](docs/images/feature_importance_combined.png)
+![Feature Importance](docs/assets/images/feature_importance_combined.png)
 *California Housing dataset - shows MedInc (median income) as the most important feature*
 
 #### 4. Marginal Impact
 Feature-specific prediction changes across all splits in the model. Shows how the model's prediction changes in different ranges of a feature based on the tree structure alone (no data required). The step function displays the marginal prediction change at each threshold, with color intensity indicating the magnitude of impact.
 
-![Marginal Impact](docs/images/marginal_impact_petal_length.png)
+![Marginal Impact](docs/assets/images/marginal_impact_petal_length.png)
 *Iris dataset - marginal impact of petal length on class 2 probability. Strong positive impact in the 3-4.5cm range (darker green) indicates higher probability for class 2 (virginica). Negative impact below 3cm (red) suggests lower probability. The step function shows exact prediction changes at each split threshold across all 150 trees.*
 
 #### 5. Partial Dependence Plot (PDP)
 Shows how predictions change as a feature varies, with ICE curves for individual samples. Uses hybrid grid (100 uniform + 100 percentile points) for comprehensive coverage of continuous features.
 
-![Partial Dependence Plot](docs/images/PDP_MedInc.png)
+![Partial Dependence Plot](docs/assets/images/PDP_MedInc.png)
 *California Housing dataset - MedInc (median income) shows strong positive relationship with house value*
 
 #### Interactive Tree Visualization
 Interactive tree structure exploration with hover information for splits and leaf values.
 
-![Tree 1](docs/images/Iris-Tree_1.png)
+![Tree 1](docs/assets/images/Iris-Tree_1.png)
 *Iris dataset - Tree 1 showing decision structure with split conditions and gains*
 
-![Tree 4](docs/images/Iris-Tree_4.png)
+![Tree 4](docs/assets/images/Iris-Tree_4.png)
 *Iris dataset - Tree 4 demonstrating deeper splits and leaf predictions*
 
 #### Feature Usage Heatmap
 Heatmap showing which features are used together in trees.
 
-![Feature Usage Heatmap](docs/images/feature_usage_heatmap.png)
+![Feature Usage Heatmap](docs/assets/images/feature_usage_heatmap.png)
 *California Housing dataset - reveals feature co-occurrence patterns*
 
 #### Tree-Level Feature Co-occurrence
 Symmetric matrix showing how often pairs of features appear in the same tree.
 
-![Tree-Level Co-occurrence](docs/images/feature_cooccurrence_tree_level.png)
+![Tree-Level Co-occurrence](docs/assets/images/feature_cooccurrence_tree_level.png)
 *California Housing dataset - darker colors indicate features frequently used together in trees*
 
 #### Path-Level Feature Co-occurrence
 Symmetric matrix showing how often pairs of features appear on the same root-to-leaf decision path (log scale).
 
-![Path-Level Co-occurrence](docs/images/feature_cooccurrence_path_level.png)
+![Path-Level Co-occurrence](docs/assets/images/feature_cooccurrence_path_level.png)
 *California Housing dataset - reveals tighter feature interactions along decision paths*
 
 #### Sequential Feature Co-occurrence
 Asymmetric matrix showing conditional probabilities: when a feature (row) splits, what's the probability that another feature (column) is the immediate next split? This reveals directional parent→child feature dependencies in the tree structure.
 
-![Sequential Feature Co-occurrence](docs/images/feature_cooccurrence_sequential.png)
+![Sequential Feature Co-occurrence](docs/assets/images/feature_cooccurrence_sequential.png)
 
 *California Housing dataset - shows which features tend to follow others in decision paths. High values indicate strong sequential dependencies (e.g., after splitting on feature A, the model frequently splits on feature B next)*
 
 #### Accumulated Local Effects (ALE) Plot
 Unbiased feature effect visualization that accounts for feature correlations. ALE plots show the marginal effect of a feature on predictions while properly handling correlated features, making them superior to PDPs when features are correlated.
 
-![ALE Plot](docs/images/ALE_HouseAge.png)
+![ALE Plot](docs/assets/images/ALE_HouseAge.png)
 *California Housing dataset - ALE plot for HouseAge showing the local effect on house value predictions. The shaded region indicates 95% confidence intervals. The plot reveals a non-linear relationship where house age has varying impacts on value across different age ranges.*
 
 #### SHAP Analysis
@@ -214,42 +218,42 @@ SHAP (SHapley Additive exPlanations) provides model-agnostic explanations by com
 
 **SHAP Summary Beeswarm Plot**: Shows feature importance and effect direction across all samples.
 
-![SHAP Summary](docs/images/summary_beeswarm.png)
+![SHAP Summary](docs/assets/images/summary_beeswarm.png)
 *California Housing dataset - each dot represents a sample, colored by feature value (red=high, blue=low). Position on x-axis shows impact on prediction. MedInc (median income) has the strongest effect, with high values consistently pushing predictions higher.*
 
 **SHAP Waterfall Plot**: Explains individual predictions by showing how each feature pushes the prediction from the base value.
 
-![SHAP Waterfall](docs/images/waterfall_sample_2.png)
+![SHAP Waterfall](docs/assets/images/waterfall_sample_2.png)
 *California Housing dataset - waterfall plot for sample 2. Starting from the base value (E[f(x)] = 2.07), features like MedInc (+0.47) and Latitude (+0.37) push the prediction higher, while AveOccup (-0.04) slightly reduces it. Final prediction: f(x) = 2.99.*
 
 #### Feature Gain Distribution
 Distribution of gain values across all splits for each feature.
 
-![Feature Gain Distribution](docs/images/feature_gain_distribution.png)
+![Feature Gain Distribution](docs/assets/images/feature_gain_distribution.png)
 *Iris dataset - boxplot showing gain distributions per feature*
 
 #### Tree Depth Distribution
 Histogram showing the distribution of tree depths in the ensemble.
 
-![Tree Depth Histogram](docs/images/tree_depth_histogram.png)
+![Tree Depth Histogram](docs/assets/images/tree_depth_histogram.png)
 *Iris dataset - most trees have depths between 2-5*
 
 #### Gain Statistics Per Tree
 Box plots showing gain statistics for each tree in the ensemble.
 
-![Gain Stats Per Tree](docs/images/gain_stats_per_tree.png)
+![Gain Stats Per Tree](docs/assets/images/gain_stats_per_tree.png)
 *California Housing dataset - gain distribution across all 100 trees*
 
 #### Prediction Statistics Per Tree
 Statistical analysis of leaf predictions across the ensemble.
 
-![Prediction Stats Per Tree](docs/images/prediction_stats_per_tree.png)
+![Prediction Stats Per Tree](docs/assets/images/prediction_stats_per_tree.png)
 *California Housing dataset - mean, median, and standard deviation of predictions per tree*
 
 #### Prediction Evolution Across Trees
 Shows how predicted probabilities change as more trees are added to the ensemble.
 
-![Scores Across Trees](docs/images/scores_across_trees.png)
+![Scores Across Trees](docs/assets/images/scores_across_trees.png)
 *Iris dataset - class probability evolution showing model convergence across the ensemble*
 
 
