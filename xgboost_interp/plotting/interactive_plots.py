@@ -62,8 +62,9 @@ class InteractivePlotter(BasePlotter):
             title=f"Interactive View of {len(trees)} Trees (Zoom + Scroll Enabled)",
             showlegend=False,
             margin=dict(l=10, r=10, t=40, b=10),
-            xaxis=dict(showgrid=False, zeroline=False),
-            yaxis=dict(showgrid=False, zeroline=False, scaleanchor="x", scaleratio=1),
+            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, 
+                      scaleanchor="x", scaleratio=1),
             height=max(600, len(trees) * vertical_spacing * 10),
             hoverlabel=dict(bgcolor="white", font_size=10)
         )
@@ -85,10 +86,13 @@ class InteractivePlotter(BasePlotter):
         
         pos = {}
         labels = {}
+        max_depth = [0]  # Track max depth for y-axis labels
         
         def build_graph(node: int, depth: int, x_offset: float) -> None:
             if node == -1 or node >= len(split_indices):
                 return
+            
+            max_depth[0] = max(max_depth[0], depth)
             
             # Create node label
             if node < len(split_indices) and lefts[node] != -1:  # Split node
@@ -99,11 +103,12 @@ class InteractivePlotter(BasePlotter):
                 threshold = (split_conditions[node] 
                            if node < len(split_conditions) else 0)
                 
-                label = (f"<b>{feat_name} &lt; {threshold:.4f}</b><br>"
+                label = (f"Feature: {feat_name}<br>"
+                        f"Threshold: &lt;{threshold:.4f}<br>"
                         f"Gain: {gain:.4f}")
             else:  # Leaf node
                 value = base_weights[node] if node < len(base_weights) else 0
-                label = f"<b>Leaf</b><br>Value: {value:.4f}"
+                label = f"<b>Leaf</b><br>Δ Score: {value:.4f}"
             
             pos[node] = (x_offset, -depth)
             labels[node] = label
@@ -156,12 +161,17 @@ class InteractivePlotter(BasePlotter):
             showlegend=False
         ))
         
+        # Create y-axis tick labels (Depth 0, Depth 1, ...)
+        y_tickvals = [-d for d in range(max_depth[0] + 1)]
+        y_ticktext = [f"Depth {d}" for d in range(max_depth[0] + 1)]
+        
         fig.update_layout(
             title=f"Tree {tree_idx}",
             showlegend=False,
-            margin=dict(l=10, r=10, t=30, b=10),
-            xaxis=dict(showgrid=False, zeroline=False),
-            yaxis=dict(showgrid=False, zeroline=False),
+            margin=dict(l=60, r=10, t=30, b=10),
+            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            yaxis=dict(showgrid=False, zeroline=False, 
+                      tickmode='array', tickvals=y_tickvals, ticktext=y_ticktext),
             height=600
         )
         
@@ -197,11 +207,12 @@ class InteractivePlotter(BasePlotter):
                 threshold = (split_conditions[node] 
                            if node < len(split_conditions) else 0)
                 
-                label = (f"<b>{feat_name} &lt; {threshold:.4f}</b><br>"
+                label = (f"Feature: {feat_name}<br>"
+                        f"Threshold: &lt;{threshold:.4f}<br>"
                         f"Gain: {gain:.4f}")
             else:  # Leaf node
                 value = base_weights[node] if node < len(base_weights) else 0
-                label = f"<b>Leaf</b><br>Value: {value:.4f}"
+                label = f"<b>Leaf</b><br>Δ Score: {value:.4f}"
             
             pos[node] = (x_offset, -depth + y_shift)
             labels[node] = label
