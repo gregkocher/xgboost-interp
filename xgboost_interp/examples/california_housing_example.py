@@ -89,6 +89,7 @@ def train_xgboost_model(df, feature_names, target, model_path="examples/californ
     print(f"Test R²: {test_r2:.4f}")
     
     # Save model as JSON
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
     model.save_model(model_path)
     print(f"\n✅ Model saved as: {model_path}")
     

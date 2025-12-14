@@ -86,6 +86,7 @@ def train_iris_xgboost_model(df, feature_names, target, model_path="examples/iri
                               target_names=['setosa', 'versicolor', 'virginica']))
     
     # Save model as JSON
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
     model.save_model(model_path)
     print(f"\n✅ Model saved as: {model_path}")
     
