@@ -7,7 +7,6 @@ import seaborn as sns
 import numpy as np
 from typing import List, Dict, Optional, Tuple
 from collections import defaultdict
-from itertools import combinations
 
 from .base_plotter import BasePlotter
 
