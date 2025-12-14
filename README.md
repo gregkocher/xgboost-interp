@@ -5,8 +5,7 @@
 <p align="center">
   <a href="https://www.repostatus.org/#active"><img src="https://www.repostatus.org/badges/latest/active.svg" alt="Project Status: Active"></a>
   <a href="https://github.com/gregkocher/xgboost-interp/blob/main/LICENSE"><img src="https://img.shields.io/github/license/gregkocher/xgboost-interp" alt="License"></a>
-  <a href="https://github.com/gregkocher/xgboost-interp/actions"><img src="https://img.shields.io/badge/CI-coming%20soon-lightgrey" alt="CI"></a>
-  <a href="https://github.com/gregkocher/xgboost-interp/actions"><img src="https://img.shields.io/badge/tests-coming%20soon-lightgrey" alt="Tests"></a>
+  <a href="https://github.com/gregkocher/xgboost-interp/actions/workflows/tests.yml"><img src="https://github.com/gregkocher/xgboost-interp/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
   <a href="#"><img src="https://img.shields.io/badge/DOI-coming%20soon-lightgrey" alt="DOI"></a>
 </p>
 
