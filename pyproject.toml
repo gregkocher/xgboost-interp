@@ -3,7 +3,7 @@ name = "xgboost-interp"
 version = "0.1.0"
 description = "A comprehensive toolkit for interpreting and analyzing XGBoost models"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 dependencies = [
     "matplotlib>=3.3.0",
     "networkx>=2.5.0",

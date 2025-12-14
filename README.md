@@ -34,7 +34,7 @@ A comprehensive toolkit for interpreting and analyzing XGBoost models. This pack
 
 ## Requirements
 
-- Python 3.8+
+- Python 3.10+
 - matplotlib >= 3.3.0
 - networkx >= 2.5.0
 - numpy >= 1.19.0
