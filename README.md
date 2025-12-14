@@ -34,19 +34,19 @@ A comprehensive toolkit for interpreting and analyzing XGBoost models. This pack
 
 ## Requirements
 
-- Python 3.7+
-- xgboost >= 1.4.0
+- Python 3.8+
+- matplotlib >= 3.3.0
+- networkx >= 2.5.0
 - numpy >= 1.19.0
 - pandas >= 1.2.0
-- matplotlib >= 3.3.0
-- seaborn >= 0.11.0
+- plotly >= 5.0.0
+- pyALE >= 0.2.0
+- pyarrow >= 10.0.0
 - scikit-learn >= 0.24.0
 - scipy >= 1.6.0
-
-### Optional Dependencies
-- plotly >= 5.0.0 (for interactive plots)
-- networkx >= 2.5.0 (for tree visualization)
-- pyALE >= 0.2.0 (for ALE plots)
+- seaborn >= 0.11.0
+- shap >= 0.40.0
+- xgboost >= 1.4.0
 
 
 ## Setup
