@@ -16,6 +16,7 @@ dependencies = [
     "networkx>=2.5.0",
     "pyALE>=0.2.0",
     "shap>=0.40.0",
+    "pyarrow>=10.0.0",
 ]
 
 [project.optional-dependencies]
