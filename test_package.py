@@ -11,7 +11,7 @@ def test_imports():
         from xgboost_interp.plotting import BasePlotter, FeaturePlotter, TreePlotter, InteractivePlotter
         print("✅ Plotting classes imported successfully")
         
-        from xgboost_interp.utils import ModelLoader, DataLoader, MathUtils
+        from xgboost_interp.utils import ModelLoader, DataLoader
         print("✅ Utility classes imported successfully")
         
         print("🎉 All imports successful! Package is ready to use.")
@@ -26,24 +26,11 @@ def test_basic_functionality():
     """Test basic functionality without requiring actual model files."""
     try:
         from xgboost_interp.utils.model_utils import ModelLoader
-        from xgboost_interp.utils.math_utils import MathUtils
         
         # Test utility functions
         assert ModelLoader._safe_int("123") == 123
         assert ModelLoader._safe_int("invalid") is None
         assert ModelLoader._safe_float("12.34") == 12.34
-        
-        # Test math utils
-        import numpy as np
-        test_vector = np.array([3, 4])
-        normalized = MathUtils.normalize_vector(test_vector)
-        assert abs(np.linalg.norm(normalized) - 1.0) < 1e-10
-        
-        # Test tree depth computation
-        left_children = [1, -1, -1]  # Simple tree: root -> left leaf, right leaf
-        right_children = [2, -1, -1]
-        depth = MathUtils.compute_tree_depth(left_children, right_children, 0)
-        assert depth == 2
         
         print("✅ Basic functionality tests passed")
         return True

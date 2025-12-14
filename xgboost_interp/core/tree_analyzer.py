@@ -8,7 +8,6 @@ that don't require actual data examples.
 
 import os
 from typing import Optional, List, Dict, Any
-from collections import defaultdict
 
 from ..utils.model_utils import ModelLoader
 from ..plotting.base_plotter import BasePlotter
@@ -50,10 +49,6 @@ class TreeAnalyzer:
         if save_dir is None:
             save_dir = os.path.splitext(json_path)[0]  # Remove .json extension
         self.plotter = BasePlotter(save_dir)
-        
-        # Cache for computed features
-        self.feature_gains = defaultdict(list)
-        self._gains_computed = False
     
     def print_model_summary(self) -> None:
         """Print a summary of the model structure and parameters."""
@@ -68,32 +63,6 @@ class TreeAnalyzer:
         print(f"Number of Features       : {len(self.feature_names)}")
         print(f"Feature Preview          : {self.feature_names[:10]}")
         print("------------------------------\n")
-    
-    def _collect_feature_gains(self) -> None:
-        """Collect gain values for each feature across all trees."""
-        if self._gains_computed:
-            return
-        
-        self.feature_gains.clear()
-        
-        for tree in self.trees:
-            split_indices = tree.get("split_indices", [])
-            loss_changes = tree.get("loss_changes", [])
-            left_children = tree.get("left_children", [])
-            
-            for node_id, feature_index in enumerate(split_indices):
-                if left_children[node_id] == -1:  # Skip leaf nodes
-                    continue
-                
-                if 0 <= feature_index < len(self.feature_names):
-                    feature_name = self.feature_names[feature_index]
-                else:
-                    feature_name = f"f{feature_index}"
-                
-                gain = loss_changes[node_id]
-                self.feature_gains[feature_name].append(gain)
-        
-        self._gains_computed = True
     
     def plot_feature_importance_combined(self, top_n: Optional[int] = None) -> None:
         """
@@ -208,13 +177,22 @@ class TreeAnalyzer:
     def plot_tree_depth_histogram(self) -> None:
         """Plot histogram of actual tree depths."""
         import matplotlib.pyplot as plt
-        from ..utils.math_utils import MathUtils
+        
+        def compute_tree_depth(left_children, right_children, start_node=0):
+            """Compute the depth of a tree given its structure."""
+            def _compute_depth_recursive(node):
+                if node == -1 or node >= len(left_children):
+                    return 0
+                left_depth = _compute_depth_recursive(left_children[node])
+                right_depth = _compute_depth_recursive(right_children[node])
+                return 1 + max(left_depth, right_depth)
+            return _compute_depth_recursive(start_node)
         
         depths = []
         for tree in self.trees:
             lefts = tree.get("left_children", [])
             rights = tree.get("right_children", [])
-            depth = MathUtils.compute_tree_depth(lefts, rights, 0)
+            depth = compute_tree_depth(lefts, rights, 0)
             depths.append(depth)
         
         if not depths:
