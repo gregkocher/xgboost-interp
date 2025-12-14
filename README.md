@@ -62,7 +62,7 @@ source .venv/bin/activate
 ## Quick Start
 
 ```bash
-python3 xgboost_interp/examples/user_model_complete_analysis.py your_model.json path/to/parquet/data_dir/
+python3 xgboost_interp/examples/user_model_complete_analysis.py YOUR_MODEL.json PATH/TO/YOUR/PARQUET/DATA_DIR/
 ```
 
 
