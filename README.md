@@ -21,10 +21,27 @@ A comprehensive toolkit for interpreting and analyzing XGBoost models. This pack
 - **Tree Explorer**: Interactive tree structure visualization with Plotly, showing all split features and split thresholds
 
 
+## Requirements
+
+- Python 3.7+
+- xgboost >= 1.4.0
+- numpy >= 1.19.0
+- pandas >= 1.2.0
+- matplotlib >= 3.3.0
+- seaborn >= 0.11.0
+- scikit-learn >= 0.24.0
+- scipy >= 1.6.0
+
+### Optional Dependencies
+- plotly >= 5.0.0 (for interactive plots)
+- networkx >= 2.5.0 (for tree visualization)
+- pyALE >= 0.2.0 (for ALE plots)
+
+
 ## Setup
 
 ```bash
-git clone https://github.com/yourusername/xgboost-interp.git
+git clone https://github.com/gregkocher/xgboost-interp.git
 cd xgboost-interp
 uv sync
 source .venv/bin/activate
@@ -36,6 +53,86 @@ source .venv/bin/activate
 ```bash
 python3 xgboost_interp/examples/user_model_complete_analysis.py your_model.json path/to/parquet/data_dir/
 ```
+
+
+## Examples
+
+Example scripts are located in `xgboost_interp/examples/`:
+
+- `california_housing_example.py`: Complete example with California Housing dataset (regression)
+- `iris_classification_example.py`: Classification example with Iris dataset  
+- `user_model_complete_analysis.py`: **Run ALL analysis functions on your own model** 🌟
+- `basic_analysis.py`: Tree-level analysis without data (requires your model)
+- `advanced_analysis.py`: Full model analysis with data and interactions (requires your model)
+
+### Running Examples
+
+```bash
+# Run individual examples
+python xgboost_interp/examples/california_housing_example.py
+python xgboost_interp/examples/iris_classification_example.py
+```
+
+The examples are self-contained and include:
+- Data loading and preprocessing
+- XGBoost model training (100 trees for housing, 50 for iris)
+- Model saving as JSON
+- Complete interpretability analysis
+
+### Complete Analysis of Your Own Model
+
+The `user_model_complete_analysis.py` script runs **ALL** available analysis and plotting functions:
+
+```bash
+# Analyze your own model
+python xgboost_interp/examples/user_model_complete_analysis.py your_model.json
+python xgboost_interp/examples/user_model_complete_analysis.py your_model.json data_dir/
+
+# Multi-class: analyze specific class
+python xgboost_interp/examples/user_model_complete_analysis.py model.json data_dir/ --target-class 0
+```
+
+This example demonstrates:
+- ✅ All 15 tree-level analysis functions
+- ✅ Partial dependence plots for ALL features
+- ✅ Marginal impact analysis for ALL features
+- ✅ Prediction evolution across trees
+- ✅ Interactive tree visualizations
+- ✅ Comprehensive summary report
+
+
+## API Reference
+
+### TreeAnalyzer
+
+The main class for tree-level analysis that doesn't require data.
+
+**Key Methods:**
+- `print_model_summary()`: Display model metadata and structure
+- `plot_feature_importance_combined()`: Normalized importance by weight, gain, cover
+- `plot_feature_importance_distributions()`: Boxplots of importance distributions
+- `plot_tree_depth_histogram()`: Distribution of tree depths
+- `plot_cumulative_gain()`: Cumulative loss reduction across trees
+- `plot_feature_usage_heatmap()`: Feature co-occurrence patterns
+- `plot_gain_stats_per_tree()`: Gain distribution across trees
+- `compute_tree_level_feature_cooccurrence()`: Compute features appearing in same tree
+- `compute_path_level_feature_cooccurrence()`: Compute features on same decision paths
+- `compute_sequential_feature_dependency()`: Compute parent→child feature dependencies
+- `plot_tree_level_feature_cooccurrence()`: Plot tree-level co-occurrence heatmap
+- `plot_path_level_feature_cooccurrence()`: Plot path-level co-occurrence heatmap
+- `plot_sequential_feature_dependency()`: Plot sequential feature co-occurrence heatmap
+
+### ModelAnalyzer
+
+Extended analysis requiring actual data examples.
+
+**Key Methods:**
+- `load_data_from_parquets()`: Load data from parquet files
+- `load_xgb_model()`: Load XGBoost model for predictions
+- `plot_partial_dependence()`: PDP with ICE curves
+- `plot_ale()`: Accumulated Local Effects plots
+- `plot_scores_across_trees()`: Prediction evolution analysis
+- `plot_marginal_impact_univariate()`: Feature-specific impact analysis
 
 
 ## Visualization Gallery
@@ -155,99 +252,6 @@ Shows how predicted probabilities change as more trees are added to the ensemble
 ![Scores Across Trees](docs/images/scores_across_trees.png)
 *Iris dataset - class probability evolution showing model convergence across the ensemble*
 
-## API Reference
-
-### TreeAnalyzer
-
-The main class for tree-level analysis that doesn't require data.
-
-**Key Methods:**
-- `print_model_summary()`: Display model metadata and structure
-- `plot_feature_importance_combined()`: Normalized importance by weight, gain, cover
-- `plot_feature_importance_distributions()`: Boxplots of importance distributions
-- `plot_tree_depth_histogram()`: Distribution of tree depths
-- `plot_cumulative_gain()`: Cumulative loss reduction across trees
-- `plot_feature_usage_heatmap()`: Feature co-occurrence patterns
-- `plot_gain_stats_per_tree()`: Gain distribution across trees
-- `compute_tree_level_feature_cooccurrence()`: Compute features appearing in same tree
-- `compute_path_level_feature_cooccurrence()`: Compute features on same decision paths
-- `compute_sequential_feature_dependency()`: Compute parent→child feature dependencies
-- `plot_tree_level_feature_cooccurrence()`: Plot tree-level co-occurrence heatmap
-- `plot_path_level_feature_cooccurrence()`: Plot path-level co-occurrence heatmap
-- `plot_sequential_feature_dependency()`: Plot sequential feature co-occurrence heatmap
-
-### ModelAnalyzer
-
-Extended analysis requiring actual data examples.
-
-**Key Methods:**
-- `load_data_from_parquets()`: Load data from parquet files
-- `load_xgb_model()`: Load XGBoost model for predictions
-- `plot_partial_dependence()`: PDP with ICE curves
-- `plot_ale()`: Accumulated Local Effects plots
-- `plot_scores_across_trees()`: Prediction evolution analysis
-- `plot_marginal_impact_univariate()`: Feature-specific impact analysis
-
-## Examples
-
-See the `examples/` directory for comprehensive usage examples:
-
-- `sklearn_dataset_example.py`: Complete example with California Housing dataset (regression)
-- `iris_classification_example.py`: Classification example with Iris dataset  
-- `user_model_complete_analysis.py`: **Run ALL analysis functions on your own model** 🌟
-- `basic_analysis.py`: Tree-level analysis without data (requires your model)
-- `advanced_analysis.py`: Full model analysis with data and interactions (requires your model)
-
-### Running Examples
-
-```bash
-# Run individual examples
-python xgboost_interp/examples/sklearn_dataset_example.py
-python xgboost_interp/examples/iris_classification_example.py
-```
-
-The sklearn examples are self-contained and include:
-- Data loading and preprocessing
-- XGBoost model training (100 trees for housing, 50 for iris)
-- Model saving as JSON
-- Complete interpretability analysis
-
-### Complete Analysis of Your Own Model
-
-The `user_model_complete_analysis.py` script runs **ALL** available analysis and plotting functions:
-
-```bash
-# Analyze your own model
-python xgboost_interp/examples/user_model_complete_analysis.py your_model.json
-python xgboost_interp/examples/user_model_complete_analysis.py your_model.json data_dir/
-
-# Multi-class: analyze specific class
-python xgboost_interp/examples/user_model_complete_analysis.py model.json data_dir/ --target-class 0
-```
-
-This example demonstrates:
-- ✅ All 15 tree-level analysis functions
-- ✅ Partial dependence plots for ALL features
-- ✅ Marginal impact analysis for ALL features
-- ✅ Prediction evolution across trees
-- ✅ Interactive tree visualizations
-- ✅ Comprehensive summary report
-
-## Requirements
-
-- Python 3.7+
-- numpy >= 1.19.0
-- pandas >= 1.2.0
-- matplotlib >= 3.3.0
-- seaborn >= 0.11.0
-- scikit-learn >= 0.24.0
-- scipy >= 1.6.0
-- xgboost >= 1.4.0
-
-### Optional Dependencies
-- plotly >= 5.0.0 (for interactive plots)
-- networkx >= 2.5.0 (for tree visualization)
-- pyALE >= 0.2.0 (for ALE plots)
 
 ## Contributing
 
