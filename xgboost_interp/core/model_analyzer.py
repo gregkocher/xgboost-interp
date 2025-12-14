@@ -180,52 +180,6 @@ class ModelAnalyzer:
         corrected_logits = logits_target + self.base_score_adjustment
         return expit(corrected_logits)
     
-    def predict_in_batches(self, X: pd.DataFrame, batch_size: int = 10000,
-                          base_margin: Optional[pd.Series] = None) -> np.ndarray:
-        """
-        Predict values in batches to avoid memory issues.
-        
-        Args:
-            X: Input features
-            batch_size: Size of prediction batches
-            base_margin: Base margin for predictions
-            
-        Returns:
-            Array of predictions (probabilities for target class in classification, values for regression)
-        """
-        if self.xgb_model is None:
-            raise ValueError("XGBoost model not loaded. Call load_xgb_model() first.")
-        
-        y_pred = []
-        
-        for i in range(0, len(X), batch_size):
-            X_batch = X.iloc[i:i + batch_size]
-            
-            if base_margin is not None:
-                base_margin_batch = base_margin.iloc[i:i + batch_size]
-            else:
-                base_margin_batch = None
-            
-            # Use predict_proba for classification, predict for regression
-            if hasattr(self.xgb_model, 'predict_proba') and 'multi:' in str(self.tree_analyzer.objective):
-                y_pred_batch = self.xgb_model.predict_proba(
-                    X_batch, base_margin=base_margin_batch
-                )
-                # Extract probability for target class
-                if y_pred_batch.shape[1] == 2:
-                    # Binary classification - use class 1 probability
-                    y_pred.extend(y_pred_batch[:, 1])
-                else:
-                    # Multi-class - use specified target class
-                    y_pred.extend(y_pred_batch[:, self.target_class])
-            else:
-                y_pred_batch = self.xgb_model.predict(
-                    X_batch, base_margin=base_margin_batch
-                )
-                y_pred.extend(y_pred_batch)
-        
-        return np.array(y_pred)
-    
     def plot_partial_dependence(self, feature_name: str,
                                n_curves: int = 1000, categorical_threshold: int = 250,
                                mode: str = "raw") -> None:
