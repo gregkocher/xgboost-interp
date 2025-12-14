@@ -78,9 +78,9 @@ class InteractivePlotter(BasePlotter):
                 threshold = (split_conditions[node] 
                            if node < len(split_conditions) else 0)
                 
-                label = (f"Feature: {feat_name}<br>"
-                        f"Threshold: &lt;{threshold:.4f}<br>"
-                        f"Gain: {gain:.4f}")
+                label = (f"<b>Feature:</b> {feat_name}<br>"
+                        f"<b>Threshold:</b> &lt;{threshold:.4f}<br>"
+                        f"<b>Gain:</b> {gain:.4f}")
             else:  # Leaf node
                 value = base_weights[node] if node < len(base_weights) else 0
                 label = f"<b>Leaf</b><br>Δ Score: {value:.4f}"
