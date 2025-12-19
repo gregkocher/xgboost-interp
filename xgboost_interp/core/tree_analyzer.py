@@ -61,7 +61,7 @@ class TreeAnalyzer:
         print(f"Base Score               : {self.base_score}")
         print(f"Objective                : {self.objective}")
         print(f"Number of Features       : {len(self.feature_names)}")
-        print(f"Feature Preview          : {self.feature_names[:10]}")
+        print(f"Features                 : {self.feature_names}")
         print("------------------------------\n")
     
     def plot_feature_importance_combined(self, top_n: Optional[int] = None) -> None:
