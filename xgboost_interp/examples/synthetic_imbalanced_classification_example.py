@@ -515,7 +515,7 @@ def train_xgboost_model(
     
     # Train model (no scale_pos_weight since we're not downsampling)
     model = xgb.XGBClassifier(
-        n_estimators=100,
+        n_estimators=500,
         max_depth=6,
         learning_rate=0.1,
         subsample=0.8,
@@ -656,7 +656,7 @@ def run_full_analysis(
     print("\nGenerating prediction evolution plot...")
     try:
         model_analyzer.plot_scores_across_trees(
-            tree_indices=[20, 40, 60, 80, 100],
+            tree_indices=[100, 200, 300, 400, 500],
             n_records=500
         )
         print("  ✅ Scores across trees plot saved")
