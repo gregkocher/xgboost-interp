@@ -504,7 +504,7 @@ class ModelAnalyzer:
         
         return logits_target
     
-    def plot_scores_across_trees(self, tree_indices: List[int], 
+    def plot_scores_across_trees(self, tree_indices: List[int] = None, 
                                 n_records: int = 1000, mode: str = "raw") -> None:
         """
         Plot prediction evolution at different tree stopping points.
@@ -513,7 +513,8 @@ class ModelAnalyzer:
         For multi-class models, shows predictions for the target class.
         
         Args:
-            tree_indices: List of tree indices to evaluate
+            tree_indices: List of tree indices to evaluate. If None, uses quintiles
+                of the total number of trees (20%, 40%, 60%, 80%, 100%).
             n_records: Number of records to analyze
             mode: "raw" (default), "probability", or "logit" - Y-axis scale
                 - "raw": Probability without base_score correction (original behavior)
@@ -529,6 +530,14 @@ class ModelAnalyzer:
         
         import xgboost as xgb
         booster = self.xgb_model.get_booster()
+        
+        # Auto-compute quintile tree indices if not provided
+        if tree_indices is None:
+            n_trees = booster.num_boosted_rounds()
+            # Compute quintiles: 20%, 40%, 60%, 80%, 100% of total trees
+            tree_indices = [n_trees * i // 5 for i in range(1, 6)]
+            # Ensure final index is exactly the total number of trees
+            tree_indices[-1] = n_trees
         dtest = xgb.DMatrix(X, feature_names=self.tree_analyzer.feature_names)
         
         # Compute predictions at each tree index
