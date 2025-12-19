@@ -17,6 +17,9 @@ from sklearn.metrics import (
     accuracy_score, classification_report, roc_auc_score, 
     precision_recall_curve, average_precision_score
 )
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+from scipy import stats
 import os
 import sys
 
@@ -278,6 +281,183 @@ def get_feature_names() -> list:
     features.extend(UNIFORM_PARAMS.keys())
     features.extend(NOISE_FEATURES)
     return features
+
+
+# =============================================================================
+# VISUALIZATION FUNCTIONS
+# =============================================================================
+
+def plot_feature_pdf(
+    df: pd.DataFrame,
+    feature_name: str,
+    target_col: str = 'target',
+    save_dir: str = "examples/synthetic_imbalanced_classification/output/feature_pdfs",
+    n_bins: int = 100
+) -> None:
+    """
+    Plot feature distribution with positive rate coloring and KDE overlay.
+    
+    Creates a visualization showing:
+    1. Histogram (density-normalized) with bars colored by empirical positive rate
+    2. KDE overlay as proper PDF (area = 1)
+    3. Scatter of individual points at y=0 colored by label
+    
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame containing feature and target columns
+    feature_name : str
+        Name of the feature column to plot
+    target_col : str
+        Name of the target column (default: 'target')
+    save_dir : str
+        Directory to save the plot
+    n_bins : int
+        Number of histogram bins (default: 100)
+    """
+    os.makedirs(save_dir, exist_ok=True)
+    
+    feature_values = df[feature_name].values
+    target_values = df[target_col].values
+    
+    # Create figure
+    fig, ax = plt.subplots(figsize=(12, 6))
+    
+    # -------------------------------------------------------------------------
+    # 1. Compute histogram with positive rate per bin (density-normalized)
+    # -------------------------------------------------------------------------
+    bin_edges = np.linspace(feature_values.min(), feature_values.max(), n_bins + 1)
+    bin_indices = np.digitize(feature_values, bin_edges) - 1
+    bin_indices = np.clip(bin_indices, 0, n_bins - 1)  # Handle edge cases
+    
+    # Compute counts and positive rates per bin
+    bin_counts = np.zeros(n_bins)
+    bin_positive_rates = np.zeros(n_bins)
+    
+    for i in range(n_bins):
+        mask = bin_indices == i
+        bin_counts[i] = mask.sum()
+        if bin_counts[i] > 0:
+            bin_positive_rates[i] = target_values[mask].mean()
+    
+    # Convert counts to density (so histogram area = 1)
+    bin_width = bin_edges[1] - bin_edges[0]
+    n_total = len(feature_values)
+    bin_density = bin_counts / (n_total * bin_width)
+    
+    # Create colormap: light gray (0) → bright red (1)
+    colors_light_gray = np.array([0.85, 0.85, 0.85, 1.0])  # Light gray
+    colors_bright_red = np.array([1.0, 0.0, 0.0, 1.0])     # Bright red
+    
+    # Interpolate colors based on positive rate
+    bar_colors = []
+    for rate in bin_positive_rates:
+        color = (1 - rate) * colors_light_gray + rate * colors_bright_red
+        bar_colors.append(color)
+    
+    # Plot histogram bars (density-normalized)
+    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+    
+    ax.bar(bin_centers, bin_density, width=bin_width, color=bar_colors, 
+           edgecolor='white', linewidth=0.3, zorder=2)
+    
+    # -------------------------------------------------------------------------
+    # 2. Overlay KDE as proper PDF (area = 1, no scaling)
+    # -------------------------------------------------------------------------
+    kde = stats.gaussian_kde(feature_values)
+    x_kde = np.linspace(feature_values.min(), feature_values.max(), 500)
+    kde_values = kde(x_kde)
+    
+    ax.plot(x_kde, kde_values, color='black', linewidth=2, label='KDE', zorder=3)
+    
+    # -------------------------------------------------------------------------
+    # 3. Scatter individual points at y=0
+    # -------------------------------------------------------------------------
+    # Add small jitter to y for visibility (scaled to density range)
+    max_density = max(bin_density.max(), kde_values.max()) if bin_density.max() > 0 else 1
+    y_jitter = np.random.uniform(-0.02, 0.02, len(feature_values)) * max_density
+    
+    # Colors: light gray for label=0, bright red for label=1
+    scatter_colors = np.where(
+        target_values == 0,
+        'lightgray',
+        'red'
+    )
+    
+    ax.scatter(
+        feature_values, y_jitter, 
+        c=scatter_colors, 
+        alpha=0.15, 
+        s=3, 
+        zorder=1,
+        rasterized=True  # Optimize for large number of points
+    )
+    
+    # -------------------------------------------------------------------------
+    # 4. Formatting
+    # -------------------------------------------------------------------------
+    ax.set_xlabel(feature_name, fontsize=12)
+    ax.set_ylabel('Density', fontsize=12)
+    ax.set_title(f'Distribution of {feature_name}\n(bar color = positive rate: gray=0%, red=100%)', 
+                 fontsize=14)
+    
+    # Add colorbar for positive rate
+    sm = plt.cm.ScalarMappable(
+        cmap=mcolors.LinearSegmentedColormap.from_list('pos_rate', ['lightgray', 'red']),
+        norm=plt.Normalize(0, 1)
+    )
+    sm.set_array([])
+    cbar = plt.colorbar(sm, ax=ax, shrink=0.6, pad=0.02)
+    cbar.set_label('Positive Rate', fontsize=10)
+    
+    # Add legend for scatter
+    ax.scatter([], [], c='lightgray', alpha=0.5, s=20, label='Label = 0')
+    ax.scatter([], [], c='red', alpha=0.5, s=20, label='Label = 1')
+    ax.legend(loc='upper right', fontsize=9)
+    
+    # Set y-axis to start at a small negative value to show scatter points
+    ax.set_ylim(bottom=-0.05 * max_density)
+    
+    plt.tight_layout()
+    
+    # Save
+    save_path = os.path.join(save_dir, f'{feature_name}_pdf.png')
+    plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.close()
+
+
+def plot_all_feature_pdfs(
+    df: pd.DataFrame,
+    feature_names: list,
+    target_col: str = 'target',
+    save_dir: str = "examples/synthetic_imbalanced_classification/output/feature_pdfs",
+    n_bins: int = 100
+) -> None:
+    """
+    Generate PDF plots for all features.
+    
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame containing features and target
+    feature_names : list
+        List of feature column names
+    target_col : str
+        Name of the target column
+    save_dir : str
+        Directory to save plots
+    n_bins : int
+        Number of histogram bins
+    """
+    print(f"\nGenerating feature PDF plots for {len(feature_names)} features...")
+    os.makedirs(save_dir, exist_ok=True)
+    
+    for i, feature in enumerate(feature_names):
+        plot_feature_pdf(df, feature, target_col, save_dir, n_bins)
+        if (i + 1) % 10 == 0 or (i + 1) == len(feature_names):
+            print(f"  [{i+1}/{len(feature_names)}] Feature PDF plots generated")
+    
+    print(f"  ✅ All feature PDF plots saved to: {save_dir}")
 
 
 # =============================================================================
@@ -556,6 +736,9 @@ def main():
     
     # 3. Run full analysis
     run_full_analysis(model_path, df, feature_names)
+    
+    # 4. Generate feature PDF plots for all features
+    plot_all_feature_pdfs(df, feature_names)
     
     print("\n" + "="*65)
     print("🎉 Synthetic Imbalanced Classification Example Complete!")
