@@ -40,6 +40,7 @@ TARGET_POSITIVE_RATE = 0.10  # 10% positive rate
 EFFECT_STRONG = 0.8
 EFFECT_MEDIUM = 0.5
 EFFECT_WEAK = 0.2
+EFFECT_VERY_STRONG = 1.5  # For quadratic features to make relationship obvious
 
 # Normal iid feature parameters: (mean, std, effect_coefficient)
 NORMAL_IID_PARAMS = {
@@ -91,10 +92,17 @@ BINARY_PARAMS = {
 UNIFORM_PARAMS = {
     'unif_linear_pos': (0, 1, 'linear', EFFECT_MEDIUM),
     'unif_linear_neg': (0, 1, 'linear', -EFFECT_MEDIUM),
-    'unif_quad_pos': (0, 1, 'quadratic', EFFECT_MEDIUM),
-    'unif_quad_neg': (0, 1, 'quadratic', -EFFECT_MEDIUM),
+    'unif_quad_pos': (0, 1, 'quadratic', EFFECT_VERY_STRONG),  # Strong U-shaped
+    'unif_quad_neg': (0, 1, 'quadratic', -EFFECT_VERY_STRONG),  # Strong inverted-U
     'unif_none_1': (0, 10, 'none', 0),
     'unif_none_2': (-5, 5, 'none', 0),
+}
+
+# Trigonometric features: (frequency, effect)
+# x drawn from Uniform(0, 2π), then sin(freq*x) or cos(freq*x) applied
+TRIG_PARAMS = {
+    'trig_sin_pos': (3, EFFECT_STRONG),   # sin(3x): 3 cycles in [0, 2π]
+    'trig_cos_pos': (3, EFFECT_STRONG),   # cos(3x): 3 cycles in [0, 2π]
 }
 
 # Noise features (no signal at all)
@@ -224,7 +232,25 @@ def generate_synthetic_data(
         # 'none' type: no effect
     
     # -------------------------------------------------------------------------
-    # 6. Noise Features (no signal)
+    # 6. Trigonometric Features (periodic relationships)
+    # -------------------------------------------------------------------------
+    print("  Generating Trigonometric features...")
+    for feat_name, (frequency, effect) in TRIG_PARAMS.items():
+        # x drawn from Uniform(0, 2π)
+        x_values = np.random.uniform(0, 2 * np.pi, n_samples)
+        data[feat_name + '_x'] = x_values  # Store the raw x value
+        
+        # Apply sin or cos based on feature name
+        if 'sin' in feat_name:
+            trig_values = np.sin(frequency * x_values)
+        else:  # cos
+            trig_values = np.cos(frequency * x_values)
+        
+        # Add to log-odds (trig_values already in [-1, 1])
+        log_odds += effect * trig_values
+    
+    # -------------------------------------------------------------------------
+    # 7. Noise Features (no signal)
     # -------------------------------------------------------------------------
     print("  Generating Noise features...")
     data['noise_norm'] = np.random.normal(0, 1, n_samples)
@@ -232,7 +258,7 @@ def generate_synthetic_data(
     data['noise_cat'] = np.random.randint(0, 50, n_samples)
     
     # -------------------------------------------------------------------------
-    # 7. Generate Target
+    # 8. Generate Target
     # -------------------------------------------------------------------------
     print("  Generating target labels...")
     
@@ -279,6 +305,8 @@ def get_feature_names() -> list:
     features.extend(CATEGORICAL_PARAMS.keys())
     features.extend(BINARY_PARAMS.keys())
     features.extend(UNIFORM_PARAMS.keys())
+    # Trig features: the raw x values (used as model input)
+    features.extend([f"{name}_x" for name in TRIG_PARAMS.keys()])
     features.extend(NOISE_FEATURES)
     return features
 
@@ -587,7 +615,7 @@ def run_full_analysis(
     model_analyzer.load_xgb_model(model_path)
     
     # Select subset of features for detailed analysis
-    # (analyzing all 37 features would take too long)
+    # (analyzing all features would take too long)
     important_features = [
         # Strong effects (should be most important)
         'norm_iid_pos_strong', 'norm_iid_neg_strong',
@@ -595,6 +623,8 @@ def run_full_analysis(
         # Medium effects
         'norm_corr_1_pos', 'norm_corr_3_neg',
         'unif_linear_pos', 'unif_quad_pos',
+        # Trigonometric (periodic relationships)
+        'trig_sin_pos_x', 'trig_cos_pos_x',
         # Categorical
         'cat_15_strong', 'cat_75_mixed',
         # Noise (should have minimal importance)
@@ -725,6 +755,7 @@ def main():
     print(f"  - Categorical: {len(CATEGORICAL_PARAMS)} features")
     print(f"  - Binary: {len(BINARY_PARAMS)} features")
     print(f"  - Uniform: {len(UNIFORM_PARAMS)} features")
+    print(f"  - Trigonometric: {len(TRIG_PARAMS)} features")
     print(f"  - Noise: {len(NOISE_FEATURES)} features")
     print(f"  - Total: {len(feature_names)} features")
     
@@ -748,7 +779,8 @@ def main():
     print("  2. Noise features should have minimal/zero importance")
     print("  3. Correlated features may share importance due to substitutability")
     print("  4. Categorical features show step patterns in PDP/ALE plots")
-    print("  5. Quadratic uniform features show curved relationships")
+    print("  5. Quadratic uniform features show U-shaped or inverted-U relationships")
+    print("  6. Trigonometric features show periodic wave patterns in PDP/ALE plots")
 
 
 if __name__ == "__main__":
