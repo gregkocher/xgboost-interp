@@ -175,10 +175,7 @@ def analyze_iris_model(model_path, data_df, feature_names):
         print(f"\nGenerating prediction evolution plot for class {target_class} ({class_names[target_class]})...")
         try:
             # For iris: 150 total trees = 50 rounds x 3 classes
-            model_analyzer.plot_scores_across_trees(
-                tree_indices=[30, 60, 90, 120, 150],
-                n_records=150
-            )
+            model_analyzer.plot_scores_across_trees(n_records=150)
             print(f"✅ Generated scores across trees plot")
         except Exception as e:
             print(f"⚠️ Could not generate scores across trees: {e}")

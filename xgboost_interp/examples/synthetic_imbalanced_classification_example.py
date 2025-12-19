@@ -445,10 +445,7 @@ def run_full_analysis(
     # Prediction Evolution
     print("\nGenerating prediction evolution plot...")
     try:
-        model_analyzer.plot_scores_across_trees(
-            tree_indices=[20, 40, 60, 80, 100],
-            n_records=500
-        )
+        model_analyzer.plot_scores_across_trees(n_records=500)
         print("  ✅ Scores across trees plot saved")
     except Exception as e:
         print(f"  ⚠️ Could not generate scores across trees: {e}")
