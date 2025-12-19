@@ -534,8 +534,8 @@ class ModelAnalyzer:
         # Auto-compute quintile tree indices if not provided
         if tree_indices is None:
             n_trees = booster.num_boosted_rounds()
-            # Compute quintiles: 20%, 40%, 60%, 80%, 100% of total trees
-            tree_indices = [n_trees * i // 5 for i in range(1, 6)]
+            # Start at 1 (first tree), then quintiles: 20%, 40%, 60%, 80%, 100%
+            tree_indices = [1] + [n_trees * i // 5 for i in range(1, 6)]
             # Ensure final index is exactly the total number of trees
             tree_indices[-1] = n_trees
         dtest = xgb.DMatrix(X, feature_names=self.tree_analyzer.feature_names)
