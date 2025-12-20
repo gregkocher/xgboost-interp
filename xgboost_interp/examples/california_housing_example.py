@@ -186,7 +186,7 @@ def analyze_with_interpretability_package(model_path, data_df, feature_names):
     # Early exit performance analysis
     print("\nGenerating early exit performance analysis...")
     try:
-        model_analyzer.analyze_early_exit_performance(n_records=1000)
+        model_analyzer.analyze_early_exit_performance(n_records=5000)
     except Exception as e:
         print(f"⚠️ Could not generate early exit analysis: {e}")
     

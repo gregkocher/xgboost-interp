@@ -445,7 +445,7 @@ def run_full_analysis(
     # Prediction Evolution
     print("\nGenerating prediction evolution plot...")
     try:
-        model_analyzer.plot_scores_across_trees(n_records=500)
+        model_analyzer.plot_scores_across_trees(n_records=1000)
         print("  ✅ Scores across trees plot saved")
     except Exception as e:
         print(f"  ⚠️ Could not generate scores across trees: {e}")
@@ -453,7 +453,7 @@ def run_full_analysis(
     # Early exit performance analysis
     print("\nGenerating early exit performance analysis...")
     try:
-        model_analyzer.analyze_early_exit_performance(n_records=1000)
+        model_analyzer.analyze_early_exit_performance(n_records=5000)
     except Exception as e:
         print(f"  ⚠️ Could not generate early exit analysis: {e}")
     

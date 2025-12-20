@@ -322,7 +322,7 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
     print("\n[5/5] Generating early exit performance analysis...")
     try:
         model_analyzer.analyze_early_exit_performance(
-            n_records=min(1000, len(model_analyzer.df))
+            n_records=min(5000, len(model_analyzer.df))
         )
     except Exception as e:
         print(f"  ⚠️ Failed: {e}")

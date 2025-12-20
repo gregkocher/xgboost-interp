@@ -174,8 +174,7 @@ def analyze_iris_model(model_path, data_df, feature_names):
         # Prediction evolution across trees
         print(f"\nGenerating prediction evolution plot for class {target_class} ({class_names[target_class]})...")
         try:
-            # For iris: 150 total trees = 50 rounds x 3 classes
-            model_analyzer.plot_scores_across_trees(n_records=150)
+            model_analyzer.plot_scores_across_trees(n_records=1000)
             print(f"✅ Generated scores across trees plot")
         except Exception as e:
             print(f"⚠️ Could not generate scores across trees: {e}")
@@ -183,7 +182,7 @@ def analyze_iris_model(model_path, data_df, feature_names):
         # Early exit performance analysis
         print(f"\nGenerating early exit performance analysis for class {target_class} ({class_names[target_class]})...")
         try:
-            model_analyzer.analyze_early_exit_performance(n_records=150)
+            model_analyzer.analyze_early_exit_performance(n_records=5000)
         except Exception as e:
             print(f"⚠️ Could not generate early exit analysis: {e}")
         
