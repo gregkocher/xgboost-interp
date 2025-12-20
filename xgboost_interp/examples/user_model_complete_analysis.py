@@ -301,7 +301,7 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
     print(f"   Saved in: {tree_analyzer.plotter.save_dir}/pdp/")
     
     # Prediction evolution across trees
-    print("\n[4/4] Generating prediction evolution analysis...")
+    print("\n[4/5] Generating prediction evolution analysis...")
     try:
         # Create tree indices using quintiles plus tree 1 and final tree
         num_trees = tree_analyzer.num_trees_total
@@ -315,6 +315,15 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
             mode=plotting_mode
         )
         print("  ✅ Generated: scores_across_trees.png")
+    except Exception as e:
+        print(f"  ⚠️ Failed: {e}")
+    
+    # Early exit performance analysis
+    print("\n[5/5] Generating early exit performance analysis...")
+    try:
+        model_analyzer.analyze_early_exit_performance(
+            n_records=min(1000, len(model_analyzer.df))
+        )
     except Exception as e:
         print(f"  ⚠️ Failed: {e}")
     

@@ -672,26 +672,22 @@ class ModelAnalyzer:
         Also creates scatter plots and detailed score evolution visualizations.
         
         Args:
-            early_exit_points: List of tree indices for early exit (default: [100, 500, 1000, 2000, 3000, 4000])
+            early_exit_points: List of tree indices for early exit. If None, uses quintiles
+                              (1, 20%, 40%, 60%, 80%, 100% of trees).
             n_records: Number of data points for analysis (default: 1000)
             n_detailed_curves: Number of curves for detailed evolution plot (default: 100)
         """
         self._check_data_and_model()
-        
-        if early_exit_points is None:
-            early_exit_points = [100, 500, 1000, 2000, 3000, 4000]
         
         # Get total number of trees
         total_trees = len(self.tree_analyzer.trees)
         if self.num_classes and self.num_classes > 2:
             total_trees = total_trees // self.num_classes
         
-        # Filter exit points that are within the model's tree count
-        early_exit_points = [ep for ep in early_exit_points if ep < total_trees]
-        
-        if not early_exit_points:
-            print(f"Warning: No valid early exit points (model has {total_trees} trees)")
-            return
+        # Auto-generate early exit points using quintiles if not provided
+        if early_exit_points is None:
+            early_exit_points = sorted(set([1, total_trees] + 
+                list(np.quantile(range(1, total_trees + 1), [0.2, 0.4, 0.6, 0.8]).astype(int))))
         
         print('='*70)
         print('Early Exit Performance Analysis')

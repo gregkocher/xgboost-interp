@@ -450,6 +450,13 @@ def run_full_analysis(
     except Exception as e:
         print(f"  ⚠️ Could not generate scores across trees: {e}")
     
+    # Early exit performance analysis
+    print("\nGenerating early exit performance analysis...")
+    try:
+        model_analyzer.analyze_early_exit_performance(n_records=1000)
+    except Exception as e:
+        print(f"  ⚠️ Could not generate early exit analysis: {e}")
+    
     # ALE Plots
     print("\nGenerating ALE Plots...")
     try:

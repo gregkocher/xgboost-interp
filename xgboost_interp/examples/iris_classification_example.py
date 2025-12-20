@@ -180,6 +180,13 @@ def analyze_iris_model(model_path, data_df, feature_names):
         except Exception as e:
             print(f"⚠️ Could not generate scores across trees: {e}")
         
+        # Early exit performance analysis
+        print(f"\nGenerating early exit performance analysis for class {target_class} ({class_names[target_class]})...")
+        try:
+            model_analyzer.analyze_early_exit_performance(n_records=150)
+        except Exception as e:
+            print(f"⚠️ Could not generate early exit analysis: {e}")
+        
         # ALE Plots
         print(f"\n[BONUS] Generating ALE plots for class {target_class} ({class_names[target_class]})...")
         try:
