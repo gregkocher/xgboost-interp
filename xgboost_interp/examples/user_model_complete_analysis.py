@@ -16,6 +16,7 @@ import os
 import sys
 import argparse
 import time
+import numpy as np
 
 # Add the package to path for local development
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -302,18 +303,10 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
     # Prediction evolution across trees
     print("\n[4/4] Generating prediction evolution analysis...")
     try:
-        # Create a reasonable set of tree indices to analyze
+        # Create tree indices using quintiles plus tree 1 and final tree
         num_trees = tree_analyzer.num_trees_total
-        if num_trees <= 10:
-            tree_indices = list(range(1, num_trees + 1))
-        elif num_trees <= 50:
-            tree_indices = list(range(5, num_trees + 1, 5))
-        elif num_trees <= 200:
-            tree_indices = list(range(10, num_trees + 1, 10))
-        else:
-            # For very large ensembles, sample more sparsely
-            step = max(20, num_trees // 10)
-            tree_indices = list(range(step, num_trees + 1, step))
+        tree_indices = sorted(set([1, num_trees] + 
+            list(np.quantile(range(1, num_trees + 1), [0.2, 0.4, 0.6, 0.8]).astype(int))))
         
         print(f"  Analyzing predictions at tree indices: {tree_indices}")
         model_analyzer.plot_scores_across_trees(

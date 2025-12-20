@@ -175,6 +175,14 @@ def analyze_with_interpretability_package(model_path, data_df, feature_names):
         except Exception as e:
             print(f"⚠️ Could not generate marginal impact for {feature}: {e}")
     
+    # Prediction evolution across trees
+    print("\nGenerating prediction evolution plot...")
+    try:
+        model_analyzer.plot_scores_across_trees(n_records=1000)
+        print("✅ Generated scores across trees plot")
+    except Exception as e:
+        print(f"⚠️ Could not generate scores across trees: {e}")
+    
     # Interactive tree visualization (first few trees)
     print("\nGenerating interactive tree visualization...")
     try:

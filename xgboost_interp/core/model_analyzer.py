@@ -39,6 +39,7 @@ class ModelAnalyzer:
         self.num_classes = None  # Will be set when model is loaded
         self.correct_base_score = None  # Extracted from JSON to fix sklearn loading issue
         self.base_score_adjustment = None  # Logit adjustment to apply to predictions
+        self.is_regression = None  # Will be set when model is loaded
     
     def load_data_from_parquets(self, data_dir_path: str, 
                                cols_to_load: Optional[List[str]] = None,
@@ -87,17 +88,17 @@ class ModelAnalyzer:
         # Determine model type from objective
         objective = self.tree_analyzer.objective
         objective_name = objective.get("name", "") if isinstance(objective, dict) else str(objective)
-        is_regression = "reg:" in objective_name or "squarederror" in objective_name
+        self.is_regression = "reg:" in objective_name or "squarederror" in objective_name
         
         # Load model
-        self.xgb_model = xgb.XGBRegressor() if is_regression else xgb.XGBClassifier()
+        self.xgb_model = xgb.XGBRegressor() if self.is_regression else xgb.XGBClassifier()
         self.xgb_model.load_model(json_path)
         
         # Initialize base_score adjustment (computed lazily when first needed)
         self.base_score_adjustment = None
         self._base_score_computed = False
         
-        if not is_regression:
+        if not self.is_regression:
             print(f"📊 Correct base_score from JSON: {self.correct_base_score:.6f} "
                   f"→ {expit(self.correct_base_score):.6f} prob ({expit(self.correct_base_score)*100:.4f}%)")
         
@@ -504,27 +505,40 @@ class ModelAnalyzer:
         
         return logits_target
     
-    def plot_scores_across_trees(self, tree_indices: List[int], 
+    def plot_scores_across_trees(self, tree_indices: List[int] = None, 
                                 n_records: int = 1000, mode: str = "raw") -> None:
         """
         Plot prediction evolution at different tree stopping points.
         
         Shows how predictions change as more trees are added.
         For multi-class models, shows predictions for the target class.
+        For regression models, shows raw predictions (no sigmoid transformation).
         
         Args:
-            tree_indices: List of tree indices to evaluate
+            tree_indices: List of tree indices to evaluate. If None, auto-generates
+                         based on model size.
             n_records: Number of records to analyze
             mode: "raw" (default), "probability", or "logit" - Y-axis scale
-                - "raw": Probability without base_score correction (original behavior)
-                - "probability": Probability with base_score correction
-                - "logit": Logit with base_score correction
+                - For classification:
+                    - "raw": Probability without base_score correction
+                    - "probability": Probability with base_score correction
+                    - "logit": Logit with base_score correction
+                - For regression: mode is ignored, raw predictions are always used
         """
         self._check_data_and_model()
         
         X = self.df[self.tree_analyzer.feature_names].iloc[:n_records]
         
-        if not self._base_score_computed:
+        # Auto-generate tree indices if not provided
+        if tree_indices is None:
+            num_trees = len(self.tree_analyzer.trees)
+            if self.num_classes and self.num_classes > 2:
+                num_trees = num_trees // self.num_classes
+            # Quintiles (20%, 40%, 60%, 80%) plus tree 1 and final tree
+            tree_indices = sorted(set([1, num_trees] + 
+                list(np.quantile(range(1, num_trees + 1), [0.2, 0.4, 0.6, 0.8]).astype(int))))
+        
+        if not self._base_score_computed and not self.is_regression:
             self._compute_base_score_adjustment(X.head(min(100, len(X))))
         
         import xgboost as xgb
@@ -541,24 +555,28 @@ class ModelAnalyzer:
             else:
                 logits_target = booster.predict(dtest, iteration_range=(0, k), output_margin=True)
             
-            # Apply transformations based on mode
-            if mode == "raw":
-                # Raw mode: convert to probability without base_score correction
-                scores = expit(logits_target)
-            
-            elif mode == "probability" or mode == "logit":
-                # For corrected modes: apply base_score correction
-                if not self._base_score_computed:
-                    self._compute_base_score_adjustment(X.head(min(100, len(X))))
-                
-                corrected_logits = logits_target + self.base_score_adjustment
-                
-                if mode == "probability":
-                    scores = expit(corrected_logits)
-                else:  # mode == "logit"
-                    scores = corrected_logits
+            # For regression models, use raw predictions directly
+            if self.is_regression:
+                scores = logits_target
             else:
-                raise ValueError(f"Invalid mode '{mode}'. Must be 'raw', 'probability', or 'logit'")
+                # Apply transformations based on mode (classification only)
+                if mode == "raw":
+                    # Raw mode: convert to probability without base_score correction
+                    scores = expit(logits_target)
+                
+                elif mode == "probability" or mode == "logit":
+                    # For corrected modes: apply base_score correction
+                    if not self._base_score_computed:
+                        self._compute_base_score_adjustment(X.head(min(100, len(X))))
+                    
+                    corrected_logits = logits_target + self.base_score_adjustment
+                    
+                    if mode == "probability":
+                        scores = expit(corrected_logits)
+                    else:  # mode == "logit"
+                        scores = corrected_logits
+                else:
+                    raise ValueError(f"Invalid mode '{mode}'. Must be 'raw', 'probability', or 'logit'")
             
             scores_matrix.append(scores)
         
@@ -580,8 +598,10 @@ class ModelAnalyzer:
         
         ax.set_xlabel("Tree Index")
         
-        # Set ylabel based on mode
-        if mode == "logit":
+        # Set ylabel based on model type and mode
+        if self.is_regression:
+            ylabel = "Predicted Value"
+        elif mode == "logit":
             ylabel = "Predicted Logit"
         elif mode == "raw":
             ylabel = "Model Score (uncorrected base_score)"
@@ -589,9 +609,14 @@ class ModelAnalyzer:
             ylabel = "Predicted Probability"
         ax.set_ylabel(ylabel)
         
-        title = f"Class {self.target_class} " if self.num_classes > 2 else ""
-        mode_label = "Raw" if mode == "raw" else mode.title()
-        ax.set_title(f"{title}Early Exit Score Across Trees [{mode_label} Scale]")
+        # Build title
+        if self.is_regression:
+            title = "Prediction Evolution Across Trees [Regression]"
+        else:
+            class_prefix = f"Class {self.target_class} " if self.num_classes > 2 else ""
+            mode_label = "Raw" if mode == "raw" else mode.title()
+            title = f"{class_prefix}Early Exit Score Across Trees [{mode_label} Scale]"
+        ax.set_title(title)
         ax.legend()
         ax.grid(True)
         
@@ -601,6 +626,7 @@ class ModelAnalyzer:
         filepath = os.path.join(self.tree_analyzer.plotter.save_dir, 'scores_across_trees.png')
         plt.savefig(filepath, dpi=300, bbox_inches='tight')
         plt.close()
+        print(f"✅ Generated: scores_across_trees.png")
     
     def _compute_inversion_rate(self, scores_early: np.ndarray, scores_final: np.ndarray) -> float:
         """
