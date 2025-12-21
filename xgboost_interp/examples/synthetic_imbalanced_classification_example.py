@@ -30,7 +30,7 @@ from xgboost_interp import TreeAnalyzer, ModelAnalyzer
 # =============================================================================
 
 RANDOM_SEED = 10
-N_SAMPLES = 50000
+N_SAMPLES = 100000
 TARGET_POSITIVE_RATE = 0.10  # 10% positive rate
 
 # Feature effect strengths (coefficients for log-odds)
@@ -307,7 +307,7 @@ def train_xgboost_model(
     
     # Train model (no scale_pos_weight since we're not downsampling)
     model = xgb.XGBClassifier(
-        n_estimators=500,
+        n_estimators=3000,
         max_depth=6,
         learning_rate=0.1,
         subsample=0.8,
@@ -453,7 +453,7 @@ def run_full_analysis(
     # Early exit performance analysis
     print("\nGenerating early exit performance analysis...")
     try:
-        model_analyzer.analyze_early_exit_performance(n_records=5000)
+        model_analyzer.analyze_early_exit_performance(n_records=5000, n_detailed_curves=1000)
     except Exception as e:
         print(f"  ⚠️ Could not generate early exit analysis: {e}")
     
