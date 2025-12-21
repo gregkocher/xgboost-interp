@@ -267,7 +267,7 @@ Shows how predicted probabilities change as more trees are added to the ensemble
 Scatter plots comparing predictions at different tree stopping points (early exit) against final model predictions. Each subplot shows how well early-stopped predictions correlate with full ensemble predictions, with MSE displayed. Useful for understanding when additional trees stop providing significant improvements.
 
 ![Early Exit Scatter](docs/assets/images/early_exit_scatter.png)
-*Synthetic classification dataset (1000 trees) - comparing early exit predictions at quantile points (1, 200, 400, 600, 800 trees) vs final predictions. High correlation at later exit points indicates model convergence.*
+*Synthetic classification dataset (3000 trees) - comparing early exit predictions at quantile points (1, 600, 1200, 1800, 2400 trees) vs final predictions. High correlation at later exit points indicates model convergence.*
 
 **Early Exit Performance Metrics:**
 
