@@ -269,6 +269,19 @@ Scatter plots comparing predictions at different tree stopping points (early exi
 ![Early Exit Scatter](docs/assets/images/early_exit_scatter.png)
 *Synthetic classification dataset (1000 trees) - comparing early exit predictions at quantile points (1, 200, 400, 600, 800 trees) vs final predictions. High correlation at later exit points indicates model convergence.*
 
+**Early Exit Performance Metrics:**
+
+| Tree Index | Inversion Rate | MSE | Kendall-Tau | Spearman |
+|------------|----------------|-----|-------------|----------|
+| 1 | 17.58% | 39.81 | 0.3221 | 0.4613 |
+| 600 | 4.07% | 13.50 | 0.8338 | 0.9621 |
+| 1200 | 2.81% | 6.38 | 0.8843 | 0.9813 |
+| 1800 | 2.00% | 2.31 | 0.9182 | 0.9905 |
+| 2400 | 1.26% | 0.50 | 0.9494 | 0.9964 |
+| 3000 | 0.00% | 0.00 | 1.0000 | 1.0000 |
+
+*Metrics comparing early exit predictions to final model (3000 trees). Lower inversion rate and MSE, higher Kendall-Tau and Spearman indicate better agreement with final predictions.*
+
 
 ## Contributing
 
