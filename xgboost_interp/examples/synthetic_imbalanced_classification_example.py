@@ -21,7 +21,7 @@ import os
 import sys
 
 # Add the package to path for local development
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from xgboost_interp import TreeAnalyzer, ModelAnalyzer
 
@@ -307,7 +307,7 @@ def train_xgboost_model(
     
     # Train model (no scale_pos_weight since we're not downsampling)
     model = xgb.XGBClassifier(
-        n_estimators=100,
+        n_estimators=500,
         max_depth=6,
         learning_rate=0.1,
         subsample=0.8,
