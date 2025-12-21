@@ -41,6 +41,23 @@ class ModelAnalyzer:
         self.base_score_adjustment = None  # Logit adjustment to apply to predictions
         self.is_regression = None  # Will be set when model is loaded
     
+    def _get_default_tree_indices(self) -> List[int]:
+        """
+        Get default tree indices at quantiles, adjusted for multi-class models.
+        
+        Returns tree indices at: 1, 20%, 40%, 60%, 80%, 100% of total trees.
+        For models with 10+ trees, this returns exactly 6 indices.
+        
+        Returns:
+            Sorted list of tree indices
+        """
+        num_trees = len(self.tree_analyzer.trees)
+        if self.num_classes and self.num_classes > 2:
+            num_trees = num_trees // self.num_classes
+        
+        return sorted(set([1, num_trees] + 
+            list(np.quantile(range(1, num_trees + 1), [0.2, 0.4, 0.6, 0.8]).astype(int))))
+    
     def load_data_from_parquets(self, data_dir_path: str, 
                                cols_to_load: Optional[List[str]] = None,
                                num_files_to_read: int = 1000) -> None:
@@ -531,12 +548,7 @@ class ModelAnalyzer:
         
         # Auto-generate tree indices if not provided
         if tree_indices is None:
-            num_trees = len(self.tree_analyzer.trees)
-            if self.num_classes and self.num_classes > 2:
-                num_trees = num_trees // self.num_classes
-            # Quintiles (20%, 40%, 60%, 80%) plus tree 1 and final tree
-            tree_indices = sorted(set([1, num_trees] + 
-                list(np.quantile(range(1, num_trees + 1), [0.2, 0.4, 0.6, 0.8]).astype(int))))
+            tree_indices = self._get_default_tree_indices()
         
         if not self._base_score_computed and not self.is_regression:
             self._compute_base_score_adjustment(X.head(min(100, len(X))))
@@ -679,15 +691,14 @@ class ModelAnalyzer:
         """
         self._check_data_and_model()
         
-        # Get total number of trees
+        # Auto-generate early exit points using quantiles if not provided
+        if early_exit_points is None:
+            early_exit_points = self._get_default_tree_indices()
+        
+        # Get total number of trees (for final prediction comparison)
         total_trees = len(self.tree_analyzer.trees)
         if self.num_classes and self.num_classes > 2:
             total_trees = total_trees // self.num_classes
-        
-        # Auto-generate early exit points using quintiles if not provided
-        if early_exit_points is None:
-            early_exit_points = sorted(set([1, total_trees] + 
-                list(np.quantile(range(1, total_trees + 1), [0.2, 0.4, 0.6, 0.8]).astype(int))))
         
         print('='*70)
         print('Early Exit Performance Analysis')

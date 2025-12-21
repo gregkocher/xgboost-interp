@@ -16,7 +16,6 @@ import os
 import sys
 import argparse
 import time
-import numpy as np
 
 # Add the package to path for local development
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -303,10 +302,8 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
     # Prediction evolution across trees
     print("\n[4/5] Generating prediction evolution analysis...")
     try:
-        # Create tree indices using quintiles plus tree 1 and final tree
-        num_trees = tree_analyzer.num_trees_total
-        tree_indices = sorted(set([1, num_trees] + 
-            list(np.quantile(range(1, num_trees + 1), [0.2, 0.4, 0.6, 0.8]).astype(int))))
+        # Create tree indices using quantiles (1, 20%, 40%, 60%, 80%, 100%)
+        tree_indices = model_analyzer._get_default_tree_indices()
         
         print(f"  Analyzing predictions at tree indices: {tree_indices}")
         model_analyzer.plot_scores_across_trees(
@@ -325,7 +322,7 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
             n_records=min(5000, len(model_analyzer.df))
         )
     except Exception as e:
-        print(f"  ⚠️ Failed: {e}")
+        print(f"⚠️ Could not generate early exit analysis: {e}")
     
     # ALE plots (optional - requires pyALE)
     print("\n[BONUS] Attempting to generate ALE plots (requires pyALE)...")
