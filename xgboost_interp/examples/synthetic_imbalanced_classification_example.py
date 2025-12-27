@@ -350,6 +350,8 @@ def run_full_analysis(
     model_path: str,
     data_df: pd.DataFrame,
     feature_names: list,
+    y_test=None,
+    y_pred_proba=None,
     output_dir: str = "examples/synthetic_imbalanced_classification/output"
 ):
     """Run complete interpretability analysis on the trained model."""
@@ -405,6 +407,15 @@ def run_full_analysis(
     model_analyzer = ModelAnalyzer(tree_analyzer, target_class=1)
     model_analyzer.load_data_from_parquets(data_dir, num_files_to_read=1)
     model_analyzer.load_xgb_model(model_path)
+    
+    # Model performance metrics
+    if y_test is not None and y_pred_proba is not None:
+        print("\nComputing model performance metrics...")
+        metrics = model_analyzer.evaluate_model_performance(y_test, y_pred_proba)
+        print("Model Performance Metrics:")
+        for k, v in metrics.items():
+            print(f"  {k}: {round(v, 6)}")
+        print(f" Saved to: {output_dir}/model_performance_metrics.txt")
     
     # Select subset of features for detailed analysis
     # (analyzing all 37 features would take too long)
@@ -558,8 +569,11 @@ def main():
         df, feature_names, model_path
     )
     
+    # Get predictions for metrics
+    y_pred_proba = model.predict_proba(X_test)[:, 1]
+    
     # 3. Run full analysis
-    run_full_analysis(model_path, df, feature_names)
+    run_full_analysis(model_path, df, feature_names, y_test, y_pred_proba)
     
     print("\n" + "="*65)
     print("🎉 Synthetic Imbalanced Classification Example Complete!")

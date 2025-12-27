@@ -232,7 +232,7 @@ def run_all_tree_level_analysis(tree_analyzer):
     print("="*70)
 
 
-def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, target_class=None, plotting_mode='raw'):
+def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, target_class=None, plotting_mode='raw', target_column=None):
     """
     Run ALL data-dependent analysis functions.
     
@@ -273,6 +273,29 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
     except Exception as e:
         print(f"❌ Failed to load model: {e}")
         return False
+    
+    # Model performance metrics (if target column provided)
+    if target_column and target_column in model_analyzer.df.columns:
+        print(f"\n[2.5/5] Computing model performance metrics...")
+        y_true = model_analyzer.df[target_column].values
+        feature_names = tree_analyzer.feature_names
+        X = model_analyzer.df[feature_names].values
+        
+        # Get predictions based on model type
+        if model_analyzer.is_regression:
+            y_pred = model_analyzer.xgb_model.predict(X)
+        else:
+            y_pred = model_analyzer.xgb_model.predict_proba(X)
+            if y_pred.ndim == 2 and y_pred.shape[1] == 2:
+                y_pred = y_pred[:, 1]  # Binary: use positive class proba
+        
+        metrics = model_analyzer.evaluate_model_performance(y_true, y_pred)
+        print("Model Performance Metrics:")
+        for k, v in metrics.items():
+            print(f"  {k}: {round(v, 6)}")
+        print(f"  Saved to: {tree_analyzer.plotter.save_dir}/model_performance_metrics.txt")
+    elif target_column:
+        print(f"\n[2.5/5] Target column '{target_column}' not found in data. Skipping metrics.")
     
     # Partial Dependence Plots for all features
     print("\n[3/4] Generating Partial Dependence Plots (PDPs) for all features...")
@@ -552,6 +575,13 @@ For multi-class models, you can run this script multiple times with different
         help='Y-axis mode for PDPs and score evolution plots (default: raw). Options: raw, probability, logit'
     )
     
+    parser.add_argument(
+        '--target-column',
+        type=str,
+        default=None,
+        help='Name of target column in data for computing model performance metrics'
+    )
+    
     args = parser.parse_args()
     
     # Validate inputs
@@ -602,7 +632,8 @@ For multi-class models, you can run this script multiple times with different
                 tree_analyzer, 
                 args.data_dir,
                 args.target_class,
-                args.plotting_mode
+                args.plotting_mode,
+                args.target_column
             )
         except Exception as e:
             print(f"❌ Failed to run data-dependent analysis: {e}")

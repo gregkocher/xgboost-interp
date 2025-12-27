@@ -1043,3 +1043,31 @@ class ModelAnalyzer:
             raise ValueError("Data not loaded. Call load_data_from_parquets() first.")
         if self.xgb_model is None:
             raise ValueError("XGBoost model not loaded. Call load_xgb_model() first.")
+    
+    def evaluate_model_performance(self, y_true, y_pred) -> dict:
+        """
+        Compute and save model performance metrics.
+        
+        Args:
+            y_true: Ground truth labels/values
+            y_pred: Model predictions (probabilities for classification, values for regression)
+        
+        Returns:
+            Dictionary of metric names to values
+        """
+        from ..utils.metrics_utils import compute_model_metrics
+        
+        objective = self.tree_analyzer.objective
+        metrics = compute_model_metrics(y_true, y_pred, objective)
+        
+        # Save to file
+        save_dir = self.tree_analyzer.plotter.save_dir
+        filepath = os.path.join(save_dir, "model_performance_metrics.txt")
+        
+        with open(filepath, 'w') as f:
+            f.write("Model Performance Metrics\n")
+            f.write("=" * 40 + "\n")
+            for name, value in metrics.items():
+                f.write(f"{name}: {round(value, 6)}\n")
+        
+        return metrics

@@ -96,7 +96,7 @@ def train_xgboost_model(df, feature_names, target, model_path="examples/californ
     return model, X_train, X_test, y_train, y_test
 
 
-def analyze_with_interpretability_package(model_path, data_df, feature_names):
+def analyze_with_interpretability_package(model_path, data_df, feature_names, y_test=None, y_pred=None):
     """Use our interpretability package to analyze the trained model."""
     print(f"\n{'='*60}")
     print("ANALYZING MODEL WITH INTERPRETABILITY PACKAGE")
@@ -152,6 +152,15 @@ def analyze_with_interpretability_package(model_path, data_df, feature_names):
     # Load data and model
     model_analyzer.load_data_from_parquets(data_dir, num_files_to_read=1)
     model_analyzer.load_xgb_model(model_path)
+    
+    # Model performance metrics
+    if y_test is not None and y_pred is not None:
+        print("\nComputing model performance metrics...")
+        metrics = model_analyzer.evaluate_model_performance(y_test, y_pred)
+        print("Model Performance Metrics:")
+        for k, v in metrics.items():
+            print(f"  {k}: {round(v, 6)}")
+        print(f" Saved to: examples/california_housing/output/model_performance_metrics.txt")
     
     # Generate partial dependence plots for all features
     print("\nGenerating partial dependence plots...")
@@ -298,8 +307,11 @@ def main():
         df, feature_names, target, model_path
     )
     
+    # Get predictions for metrics
+    y_pred = model.predict(X_test)
+    
     # Analyze with our interpretability package
-    analyze_with_interpretability_package(model_path, df, feature_names)
+    analyze_with_interpretability_package(model_path, df, feature_names, y_test, y_pred)
     
     print("\n🎉 Example completed successfully!")
     print("\nWhat was demonstrated:")

@@ -93,7 +93,7 @@ def train_iris_xgboost_model(df, feature_names, target, model_path="examples/iri
     return model, X_train, X_test, y_train, y_test
 
 
-def analyze_iris_model(model_path, data_df, feature_names):
+def analyze_iris_model(model_path, data_df, feature_names, y_test=None, y_pred_proba=None):
     """Analyze the Iris model with our interpretability package."""
     print(f"\n{'='*50}")
     print("ANALYZING IRIS MODEL")
@@ -134,6 +134,18 @@ def analyze_iris_model(model_path, data_df, feature_names):
     data_dir = "examples/iris/iris_data"
     os.makedirs(data_dir, exist_ok=True)
     data_df.to_parquet(f"{data_dir}/iris_data.parquet", index=False)
+    
+    # Model performance metrics (before per-class analysis)
+    if y_test is not None and y_pred_proba is not None:
+        print("\nComputing model performance metrics...")
+        model_analyzer = ModelAnalyzer(tree_analyzer, target_class=0)
+        model_analyzer.load_data_from_parquets(data_dir, num_files_to_read=1)
+        model_analyzer.load_xgb_model(model_path)
+        metrics = model_analyzer.evaluate_model_performance(y_test, y_pred_proba)
+        print("Model Performance Metrics:")
+        for k, v in metrics.items():
+            print(f"  {k}: {round(v, 6)}")
+        print(f" Saved to: examples/iris/output/model_performance_metrics.txt")
     
     # Analyze each class separately
     class_names = ['setosa', 'versicolor', 'virginica']
@@ -205,7 +217,7 @@ def analyze_iris_model(model_path, data_df, feature_names):
             print(f"  ⚠️ Failed to generate ALE plots: {e}")
         
         # SHAP Analysis
-        print(f"\n[BONUS] Generating SHAP analysis for class {target_class} ({class_names[target_class]})...")
+        print(f"\nGenerating SHAP analysis for class {target_class} ({class_names[target_class]})...")
         try:
             import shap
             import matplotlib.pyplot as plt
@@ -279,13 +291,6 @@ def compare_feature_importance():
     for name, imp in zip(feature_names, importance):
         print(f"  {name}: {imp:.4f}")
     
-    print("\nOur package provides more detailed analysis:")
-    print("  - Weight: How often each feature is used for splits")
-    print("  - Gain: Total improvement in loss from splits on each feature") 
-    print("  - Cover: Total number of samples affected by splits on each feature")
-    print("  - Distributions: Variability of importance across trees")
-    print("  - Partial Dependence: How predictions change with feature values")
-    print("  - Marginal Impact: Feature-specific prediction changes")
 
 
 def main():
@@ -302,18 +307,16 @@ def main():
         df, feature_names, target, model_path
     )
     
+    # Get predictions for metrics (probability matrix for multi-class)
+    y_pred_proba = model.predict_proba(X_test)
+    
     # Analyze with our interpretability package
-    analyze_iris_model(model_path, df, feature_names)
+    analyze_iris_model(model_path, df, feature_names, y_test, y_pred_proba)
     
     # Compare with built-in importance
     compare_feature_importance()
     
-    print("\n🎉 Iris classification example completed!")
-    print("\nKey insights for Iris dataset:")
-    print("1. ✅ Perfect classification accuracy (simple dataset)")
-    print("2. ✅ Clear feature importance patterns")
-    print("3. ✅ Interpretable decision boundaries")
-    print("4. ✅ Demonstrates multi-class classification analysis")
+    print("\nIris classification example completed!")
 
 
 if __name__ == "__main__":
