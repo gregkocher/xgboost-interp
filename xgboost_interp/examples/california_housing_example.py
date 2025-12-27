@@ -28,9 +28,9 @@ def load_and_prepare_data():
     print("Loading California Housing dataset...")
     
     # Check for cached parquet first (avoids network download in CI)
-    # Path relative to repo root (go up from xgboost_interp/examples/ to repo root)
+    # Path relative to repo root (go up 2 levels from xgboost_interp/examples/ to repo root)
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(script_dir)))
+    repo_root = os.path.dirname(os.path.dirname(script_dir))
     parquet_path = os.path.join(repo_root, "examples/california_housing/california_housing_data/housing_data.parquet")
     
     if os.path.exists(parquet_path):
