@@ -283,6 +283,18 @@ Scatter plots comparing predictions at different tree stopping points (early exi
 *Metrics comparing early exit predictions to final model (3000 trees). Lower inversion rate and MSE, higher Kendall-Tau and Spearman indicate better agreement with final predictions.*
 
 
+## Testing
+
+Run all tests:
+```bash
+uv run pytest tests/ -v
+```
+
+Run a specific test:
+```bash
+uv run pytest tests/test_examples.py::test_iris_example -v
+```
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
