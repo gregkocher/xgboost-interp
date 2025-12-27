@@ -27,20 +27,29 @@ def load_and_prepare_data():
     """Load and prepare the California housing dataset."""
     print("Loading California Housing dataset...")
     
-    # Load the dataset
-    housing = fetch_california_housing()
+    # Check for cached parquet first (avoids network download in CI)
+    parquet_path = "examples/california_housing/california_housing_data/housing_data.parquet"
     
-    # Create DataFrame for easier handling
-    df = pd.DataFrame(housing.data, columns=housing.feature_names)
-    df['target'] = housing.target
+    if os.path.exists(parquet_path):
+        print(f"Loading from cached parquet: {parquet_path}")
+        df = pd.read_parquet(parquet_path)
+        feature_names = [c for c in df.columns if c != 'target']
+        target = df['target'].values
+    else:
+        # Download from sklearn and cache
+        housing = fetch_california_housing()
+        df = pd.DataFrame(housing.data, columns=housing.feature_names)
+        df['target'] = housing.target
+        feature_names = list(housing.feature_names)
+        target = housing.target
     
     print(f"Dataset shape: {df.shape}")
-    print(f"Features: {list(housing.feature_names)}")
+    print(f"Features: {feature_names}")
     print(f"Target: Median house value in hundreds of thousands of dollars")
     print("\nDataset info:")
     print(df.describe())
     
-    return df, housing.feature_names, housing.target
+    return df, feature_names, target
 
 
 def train_xgboost_model(df, feature_names, target, model_path="examples/california_housing/california_housing_xgb.json"):
