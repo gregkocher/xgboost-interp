@@ -282,18 +282,25 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
         X = model_analyzer.df[feature_names].values
         
         # Get predictions based on model type
+        is_binary = False
         if model_analyzer.is_regression:
             y_pred = model_analyzer.xgb_model.predict(X)
         else:
             y_pred = model_analyzer.xgb_model.predict_proba(X)
             if y_pred.ndim == 2 and y_pred.shape[1] == 2:
                 y_pred = y_pred[:, 1]  # Binary: use positive class proba
+                is_binary = True
         
         metrics = model_analyzer.evaluate_model_performance(y_true, y_pred)
         print("Model Performance Metrics:")
         for k, v in metrics.items():
             print(f"  {k}: {round(v, 6)}")
         print(f"  Saved to: {tree_analyzer.plotter.save_dir}/model_performance_metrics.txt")
+        
+        # Calibration curves (binary classification only)
+        if is_binary:
+            print("\nGenerating calibration curves...")
+            model_analyzer.generate_calibration_curves(y_true, y_pred, X=X, n_bins=10)
     elif target_column:
         print(f"\n[2.5/5] Target column '{target_column}' not found in data. Skipping metrics.")
     

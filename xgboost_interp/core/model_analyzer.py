@@ -1071,3 +1071,29 @@ class ModelAnalyzer:
                 f.write(f"{name}: {round(value, 6)}\n")
         
         return metrics
+    
+    def generate_calibration_curves(self, y_true, y_pred, X=None, n_bins: int = 10):
+        """
+        Generate calibration curves for binary classification.
+        
+        Args:
+            y_true: Ground truth binary labels
+            y_pred: Predicted probabilities
+            X: Feature data matching y_true/y_pred (optional, for per-feature curves)
+            n_bins: Number of bins for calibration curve
+        """
+        from ..utils.metrics_utils import plot_calibration_curve
+        
+        save_dir = self.tree_analyzer.plotter.save_dir
+        
+        # Main calibration curve: sort by y_pred, plot y_pred vs y_true
+        filepath = plot_calibration_curve(y_pred, y_pred, y_true, 'predicted_prob', save_dir, n_bins)
+        print(f"  Generated: {filepath}")
+        
+        # Per-feature calibration curves (if X provided)
+        if X is not None:
+            X_arr = X.values if hasattr(X, 'values') else X
+            for i, feature in enumerate(self.tree_analyzer.feature_names):
+                # Sort by feature, but plot y_pred vs y_true
+                filepath = plot_calibration_curve(X_arr[:, i], y_pred, y_true, feature, save_dir, n_bins)
+                print(f"  Generated: {filepath}")

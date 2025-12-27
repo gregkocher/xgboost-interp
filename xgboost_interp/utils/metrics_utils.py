@@ -182,3 +182,117 @@ def _compute_calibration_metrics(y_true: np.ndarray, y_proba: np.ndarray, n_bins
     
     return avg_bias, mape, smape
 
+
+def _sanitize_filename(name: str) -> str:
+    """Convert name to safe filename (remove punctuation, replace whitespace with _)."""
+    import re
+    safe = re.sub(r'[^\w\s-]', '', name)
+    safe = re.sub(r'\s+', '_', safe)
+    return safe
+
+
+def plot_calibration_curve(
+    sort_by_values: np.ndarray,
+    x_values: np.ndarray,
+    y_values: np.ndarray,
+    sort_by_name: str,
+    save_dir: str,
+    n_bins: int = 10
+) -> str:
+    """
+    Plot calibration/reliability curve.
+    
+    Args:
+        sort_by_values: Values used to sort and bin data
+        x_values: Values for x-axis (mean per bin, typically y_pred)
+        y_values: Values for y-axis (mean per bin, typically y_true)
+        sort_by_name: Name of sort-by column (used in filename)
+        save_dir: Directory to save plot
+        n_bins: Number of bins
+    
+    Returns:
+        Path to saved figure
+    """
+    import os
+    import matplotlib.pyplot as plt
+    
+    # Convert to numpy arrays if needed
+    sort_by_values = np.asarray(sort_by_values)
+    x_values = np.asarray(x_values)
+    y_values = np.asarray(y_values)
+    
+    # Sort all arrays by sort_by_values
+    sort_idx = np.argsort(sort_by_values)
+    x_sorted = x_values[sort_idx]
+    y_sorted = y_values[sort_idx]
+    
+    # Split into n_bins equal-sized bins
+    bin_size = len(x_sorted) // n_bins
+    x_means = []
+    y_means = []
+    
+    for i in range(n_bins):
+        start = i * bin_size
+        end = start + bin_size if i < n_bins - 1 else len(x_sorted)
+        if end > start:
+            x_means.append(np.mean(x_sorted[start:end]))
+            y_means.append(np.mean(y_sorted[start:end]))
+    
+    x_means = np.array(x_means)
+    y_means = np.array(y_means)
+    
+    # Plot
+    fig, ax = plt.subplots(figsize=(8, 6))
+    
+    # y=x reference line
+    min_val = min(x_means.min(), y_means.min())
+    max_val = max(x_means.max(), y_means.max())
+    ax.plot([min_val, max_val], [min_val, max_val], 'k--', linewidth=1, label='Perfect')
+    
+    # Color gradient from coolwarm colormap (blue=low, red=high)
+    cmap = plt.cm.coolwarm
+    colors = [cmap(i / (len(x_means) - 1)) for i in range(len(x_means))]
+    
+    # Plot line segments with gradient colors
+    for i in range(len(x_means) - 1):
+        ax.plot(x_means[i:i+2], y_means[i:i+2], '-', color=colors[i], linewidth=2)
+    
+    # Plot markers with gradient colors
+    for i, (x, y) in enumerate(zip(x_means, y_means)):
+        ax.plot(x, y, 'o', color=colors[i], markersize=8)
+    
+    # Add invisible line for legend
+    ax.plot([], [], 'o-', color='gray', markersize=6, linewidth=2, label='Calibration')
+    
+    # Add bin labels near each marker
+    for i, (x, y) in enumerate(zip(x_means, y_means)):
+        bin_num = i + 1
+        if bin_num == 1:
+            label = "1 (lowest)"
+        elif bin_num == len(x_means):
+            label = f"{bin_num} (highest)"
+        else:
+            label = str(bin_num)
+        ax.annotate(label, (x, y), textcoords="offset points", xytext=(0, 10),
+                   ha='center', fontsize=7, color='black')
+    
+    ax.set_xlabel('Mean Predicted Probability')
+    ax.set_ylabel('Mean Actual (Fraction of Positives)')
+    ax.set_title(f'Calibration Curve - Sorted by {sort_by_name} ({n_bins} bins)')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    
+    # Save
+    calib_dir = os.path.join(save_dir, 'calibration_curves')
+    os.makedirs(calib_dir, exist_ok=True)
+    
+    safe_name = _sanitize_filename(sort_by_name)
+    filepath = os.path.join(calib_dir, f'calibration_curve_{n_bins}bins_sortby_{safe_name}.png')
+    
+    plt.savefig(filepath, dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    return filepath
+
