@@ -28,7 +28,10 @@ def load_and_prepare_data():
     print("Loading California Housing dataset...")
     
     # Check for cached parquet first (avoids network download in CI)
-    parquet_path = "examples/california_housing/california_housing_data/housing_data.parquet"
+    # Path relative to repo root (go up from xgboost_interp/examples/ to repo root)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(script_dir)))
+    parquet_path = os.path.join(repo_root, "examples/california_housing/california_housing_data/housing_data.parquet")
     
     if os.path.exists(parquet_path):
         print(f"Loading from cached parquet: {parquet_path}")
@@ -37,6 +40,7 @@ def load_and_prepare_data():
         target = df['target'].values
     else:
         # Download from sklearn and cache
+        print("Cached parquet not found, downloading from sklearn...")
         housing = fetch_california_housing()
         df = pd.DataFrame(housing.data, columns=housing.feature_names)
         df['target'] = housing.target
