@@ -86,6 +86,19 @@ def test_california_housing_example():
         verify_output_files(output_dir, min_png_count=1)
 
 
+def test_synthetic_imbalanced_classification_example():
+    """Test that the Synthetic Imbalanced Classification example runs successfully."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Run the example
+        exit_code = run_example_script("synthetic_imbalanced_classification_example.py", tmpdir)
+        
+        assert exit_code == 0, "Synthetic Imbalanced Classification example failed to run"
+        
+        # Verify output PNG files exist and are fresh
+        output_dir = os.path.join(tmpdir, "examples", "synthetic_imbalanced_classification", "output")
+        verify_output_files(output_dir, min_png_count=1)
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
 

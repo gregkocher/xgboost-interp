@@ -12,16 +12,12 @@ dependencies = [
     "plotly>=5.0.0",
     "pyALE>=0.2.0",
     "pyarrow>=10.0.0",
+    "pytest>=6.0",
     "scikit-learn>=0.24.0",
     "scipy>=1.6.0",
     "seaborn>=0.11.0",
     "shap>=0.40.0",
     "xgboost>=1.4.0",
-]
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=6.0",
 ]
 
 [build-system]
