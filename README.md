@@ -290,9 +290,11 @@ Run all tests:
 uv run pytest tests/ -v
 ```
 
-Run a specific test:
+Run individual tests:
 ```bash
 uv run pytest tests/test_examples.py::test_iris_example -v
+uv run pytest tests/test_examples.py::test_california_housing_example -v
+uv run pytest tests/test_examples.py::test_synthetic_imbalanced_classification_example -v
 ```
 
 ## Contributing
