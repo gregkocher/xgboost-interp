@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from typing import Optional, Dict, List
 
 from .tree_analyzer import TreeAnalyzer
+from .model_analyzer import ModelAnalyzer
 from ..plotting.base_plotter import BasePlotter
 
 
@@ -210,3 +211,138 @@ class ModelDiff:
         """Generate all 3 importance scatterplots (gain, weight, cover)."""
         for metric in ["gain", "weight", "cover"]:
             self.plot_importance_scatter(metric)
+    
+    def compare_pdp(
+        self,
+        analyzer_a: ModelAnalyzer,
+        analyzer_b: ModelAnalyzer,
+        feature_name: str,
+        n_curves: int = 1000,
+        mode: str = "raw",
+    ) -> None:
+        """
+        Plot partial dependence comparison between two models.
+        
+        Overlays PDP curves from both models on the same plot.
+        
+        Args:
+            analyzer_a: ModelAnalyzer for model A (must have data and model loaded)
+            analyzer_b: ModelAnalyzer for model B (must have data and model loaded)
+            feature_name: Name of the feature to analyze
+            n_curves: Number of data points to use for PDP computation
+            mode: "raw" (default), "probability", or "logit" - Y-axis scale
+        """
+        # Validate both analyzers have data and model loaded
+        analyzer_a._check_data_and_model()
+        analyzer_b._check_data_and_model()
+        
+        # Get feature index (use analyzer_a's feature names as reference)
+        feature_names = analyzer_a.tree_analyzer.feature_names
+        if feature_name not in feature_names:
+            raise ValueError(f"Feature '{feature_name}' not found in model A")
+        if feature_name not in analyzer_b.tree_analyzer.feature_names:
+            raise ValueError(f"Feature '{feature_name}' not found in model B")
+        
+        feat_idx = feature_names.index(feature_name)
+        
+        # Get data sample from analyzer_a
+        X_base = analyzer_a.df[feature_names].iloc[:n_curves]
+        
+        # Detect categorical vs continuous
+        unique_values = sorted(analyzer_a.df[feature_name].dropna().unique())
+        n_unique = len(unique_values)
+        is_categorical = n_unique <= 250
+        
+        print(f"Computing PDP comparison for '{feature_name}'")
+        print(f"  Type: {'CATEGORICAL' if is_categorical else 'CONTINUOUS'} ({n_unique} unique values)")
+        
+        # Compute PDP for both models using same grid
+        avg_a, ice_a, grid_values = analyzer_a._compute_pdp(
+            X_base, feat_idx, unique_values, is_categorical
+        )
+        avg_b, ice_b, _ = analyzer_b._compute_pdp(
+            X_base, feat_idx, unique_values, is_categorical
+        )
+        
+        # Create plot
+        fig, ax = plt.subplots(figsize=(14, 6))
+        
+        if is_categorical:
+            # Bar plot for categorical features
+            bar_width = 0.35
+            x_pos = np.arange(len(grid_values))
+            
+            ax.bar(x_pos - bar_width/2, avg_a, bar_width, 
+                   label=self.label_a, color='red', alpha=0.7, edgecolor='black')
+            ax.bar(x_pos + bar_width/2, avg_b, bar_width, 
+                   label=self.label_b, color='blue', alpha=0.7, edgecolor='black')
+            
+            ax.set_xticks(x_pos)
+            if n_unique <= 20:
+                labels = [f'{int(v)}' if v == int(v) else f'{v:.2f}' for v in grid_values]
+                ax.set_xticklabels(labels, rotation=45, ha='right')
+            ax.axhline(y=0, color='black', linestyle=':', linewidth=0.5)
+        else:
+            # Line plot for continuous features
+            # Plot individual curves (ICE) with different grays
+            if ice_a is not None:
+                for i, ice in enumerate(ice_a):
+                    label = f"{self.label_a} ICE" if i == 0 else None
+                    ax.plot(grid_values, ice, color='#AAAAAA', alpha=0.15, linewidth=0.8, label=label)
+            
+            if ice_b is not None:
+                for i, ice in enumerate(ice_b):
+                    label = f"{self.label_b} ICE" if i == 0 else None
+                    ax.plot(grid_values, ice, color='#666666', alpha=0.15, linewidth=0.8, label=label)
+            
+            # Plot averages
+            ax.plot(grid_values, avg_a, color='red', linestyle='-', 
+                   linewidth=2.5, label=f"{self.label_a} (avg)", marker='o', markersize=3)
+            ax.plot(grid_values, avg_b, color='blue', linestyle='-', 
+                   linewidth=2.5, label=f"{self.label_b} (avg)", marker='o', markersize=3)
+        
+        # Labels and formatting
+        ax.set_xlabel(feature_name, fontsize=11)
+        
+        if mode == "logit":
+            ylabel = "Predicted Logit"
+        elif mode == "raw":
+            ylabel = "Model Score"
+        else:
+            ylabel = "Predicted Probability"
+        ax.set_ylabel(ylabel, fontsize=11)
+        
+        ax.set_title(f"PDP Comparison: {feature_name}\n{self.label_a} vs {self.label_b}", fontsize=12)
+        ax.legend(loc='best')
+        ax.grid(True, linestyle='--', alpha=0.3)
+        
+        plt.tight_layout()
+        
+        # Save
+        filename = f'pdp_comparison_{feature_name}.png'
+        self.plotter._save_plot(filename)
+        print(f"Generated: {filename}")
+    
+    def compare_all_pdp(
+        self,
+        analyzer_a: ModelAnalyzer,
+        analyzer_b: ModelAnalyzer,
+        n_curves: int = 1000,
+        mode: str = "raw",
+    ) -> None:
+        """
+        Compare PDP for all features common to both models.
+        
+        Uses find_feature_changes() to identify common features, then
+        calls compare_pdp() for each.
+        
+        Args:
+            analyzer_a: ModelAnalyzer for model A (must have data and model loaded)
+            analyzer_b: ModelAnalyzer for model B (must have data and model loaded)
+            n_curves: Number of data points to use for PDP computation
+            mode: "raw" (default), "probability", or "logit" - Y-axis scale
+        """
+        common_features = self.find_feature_changes()['in_both']
+        print(f"Comparing PDP for {len(common_features)} common features...")
+        for feature_name in common_features:
+            self.compare_pdp(analyzer_a, analyzer_b, feature_name, n_curves, mode)
