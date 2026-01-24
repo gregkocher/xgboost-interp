@@ -594,3 +594,6 @@ class TreeAnalyzer:
         
         plt.tight_layout()
         self.plotter._save_plot('feature_importance_scatter.png')
+    
+    def get_feature_importance(self) -> tuple:
+        return self.plotter._compute_feature_stats(self.trees, self.feature_names)
