@@ -1,7 +1,0 @@
-include README.md
-include LICENSE
-include requirements.txt
-recursive-include xgboost_interp *.py
-recursive-include docs/images *.png
-recursive-exclude * __pycache__
-recursive-exclude * *.py[co]

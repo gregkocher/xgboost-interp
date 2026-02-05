@@ -263,6 +263,39 @@ Shows how predicted probabilities change as more trees are added to the ensemble
 ![Scores Across Trees](docs/assets/images/scores_across_trees.png)
 *Iris dataset - class probability evolution showing model convergence across the ensemble*
 
+#### Early Exit Analysis
+Scatter plots comparing predictions at different tree stopping points (early exit) against final model predictions. Each subplot shows how well early-stopped predictions correlate with full ensemble predictions, with MSE displayed. Useful for understanding when additional trees stop providing significant improvements.
+
+![Early Exit Scatter](docs/assets/images/early_exit_scatter.png)
+*Synthetic classification dataset (3000 trees) - comparing early exit predictions at quantile points (1, 600, 1200, 1800, 2400 trees) vs final predictions. High correlation at later exit points indicates model convergence.*
+
+**Early Exit Performance Metrics:**
+
+| Tree Index | Inversion Rate | MSE | Kendall-Tau | Spearman |
+|------------|----------------|-----|-------------|----------|
+| 1 | 17.58% | 39.81 | 0.3221 | 0.4613 |
+| 600 | 4.07% | 13.50 | 0.8338 | 0.9621 |
+| 1200 | 2.81% | 6.38 | 0.8843 | 0.9813 |
+| 1800 | 2.00% | 2.31 | 0.9182 | 0.9905 |
+| 2400 | 1.26% | 0.50 | 0.9494 | 0.9964 |
+| 3000 | 0.00% | 0.00 | 1.0000 | 1.0000 |
+
+*Metrics comparing early exit predictions to final model (3000 trees). Lower inversion rate and MSE, higher Kendall-Tau and Spearman indicate better agreement with final predictions.*
+
+
+## Testing
+
+Run all tests:
+```bash
+uv run pytest tests/ -v
+```
+
+Run individual tests:
+```bash
+uv run pytest tests/test_examples.py::test_iris_example -v
+uv run pytest tests/test_examples.py::test_california_housing_example -v
+uv run pytest tests/test_examples.py::test_synthetic_imbalanced_classification_example -v
+```
 
 ## Contributing
 

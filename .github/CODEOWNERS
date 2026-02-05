@@ -1,0 +1,6 @@
+# Code Owners for xgboost-interp
+# These users will be automatically requested for review on PRs
+
+# Default owner for all files
+*   @gregkocher
+

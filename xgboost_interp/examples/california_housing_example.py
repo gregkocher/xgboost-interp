@@ -18,7 +18,7 @@ import os
 import sys
 
 # Add the package to path for local development
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from xgboost_interp import TreeAnalyzer, ModelAnalyzer
 
@@ -27,20 +27,33 @@ def load_and_prepare_data():
     """Load and prepare the California housing dataset."""
     print("Loading California Housing dataset...")
     
-    # Load the dataset
-    housing = fetch_california_housing()
+    # Check for cached parquet first (avoids network download in CI)
+    # Path relative to repo root (go up 2 levels from xgboost_interp/examples/ to repo root)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    repo_root = os.path.dirname(os.path.dirname(script_dir))
+    parquet_path = os.path.join(repo_root, "examples/california_housing/california_housing_data/housing_data.parquet")
     
-    # Create DataFrame for easier handling
-    df = pd.DataFrame(housing.data, columns=housing.feature_names)
-    df['target'] = housing.target
+    if os.path.exists(parquet_path):
+        print(f"Loading from cached parquet: {parquet_path}")
+        df = pd.read_parquet(parquet_path)
+        feature_names = [c for c in df.columns if c != 'target']
+        target = df['target'].values
+    else:
+        # Download from sklearn and cache
+        print("Cached parquet not found, downloading from sklearn...")
+        housing = fetch_california_housing()
+        df = pd.DataFrame(housing.data, columns=housing.feature_names)
+        df['target'] = housing.target
+        feature_names = list(housing.feature_names)
+        target = housing.target
     
     print(f"Dataset shape: {df.shape}")
-    print(f"Features: {list(housing.feature_names)}")
+    print(f"Features: {feature_names}")
     print(f"Target: Median house value in hundreds of thousands of dollars")
     print("\nDataset info:")
     print(df.describe())
     
-    return df, housing.feature_names, housing.target
+    return df, feature_names, target
 
 
 def train_xgboost_model(df, feature_names, target, model_path="examples/california_housing/california_housing_xgb.json"):
@@ -96,7 +109,7 @@ def train_xgboost_model(df, feature_names, target, model_path="examples/californ
     return model, X_train, X_test, y_train, y_test
 
 
-def analyze_with_interpretability_package(model_path, data_df, feature_names):
+def analyze_with_interpretability_package(model_path, data_df, feature_names, y_test=None, y_pred=None):
     """Use our interpretability package to analyze the trained model."""
     print(f"\n{'='*60}")
     print("ANALYZING MODEL WITH INTERPRETABILITY PACKAGE")
@@ -153,6 +166,15 @@ def analyze_with_interpretability_package(model_path, data_df, feature_names):
     model_analyzer.load_data_from_parquets(data_dir, num_files_to_read=1)
     model_analyzer.load_xgb_model(model_path)
     
+    # Model performance metrics
+    if y_test is not None and y_pred is not None:
+        print("\nComputing model performance metrics...")
+        metrics = model_analyzer.evaluate_model_performance(y_test, y_pred)
+        print("Model Performance Metrics:")
+        for k, v in metrics.items():
+            print(f"  {k}: {round(v, 6)}")
+        print(f" Saved to: examples/california_housing/output/model_performance_metrics.txt")
+    
     # Generate partial dependence plots for all features
     print("\nGenerating partial dependence plots...")
     for feature in feature_names:
@@ -174,6 +196,21 @@ def analyze_with_interpretability_package(model_path, data_df, feature_names):
             print(f"✅ Generated marginal impact for {feature}")
         except Exception as e:
             print(f"⚠️ Could not generate marginal impact for {feature}: {e}")
+    
+    # Prediction evolution across trees
+    print("\nGenerating prediction evolution plot...")
+    try:
+        model_analyzer.plot_scores_across_trees(n_records=1000)
+        print("✅ Generated scores across trees plot")
+    except Exception as e:
+        print(f"⚠️ Could not generate scores across trees: {e}")
+    
+    # Early exit performance analysis
+    print("\nGenerating early exit performance analysis...")
+    try:
+        model_analyzer.analyze_early_exit_performance(n_records=5000, n_detailed_curves=1000)
+    except Exception as e:
+        print(f"⚠️ Could not generate early exit analysis: {e}")
     
     # Interactive tree visualization (first few trees)
     print("\nGenerating interactive tree visualization...")
@@ -283,8 +320,11 @@ def main():
         df, feature_names, target, model_path
     )
     
+    # Get predictions for metrics
+    y_pred = model.predict(X_test)
+    
     # Analyze with our interpretability package
-    analyze_with_interpretability_package(model_path, df, feature_names)
+    analyze_with_interpretability_package(model_path, df, feature_names, y_test, y_pred)
     
     print("\n🎉 Example completed successfully!")
     print("\nWhat was demonstrated:")

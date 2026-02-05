@@ -39,6 +39,24 @@ class ModelAnalyzer:
         self.num_classes = None  # Will be set when model is loaded
         self.correct_base_score = None  # Extracted from JSON to fix sklearn loading issue
         self.base_score_adjustment = None  # Logit adjustment to apply to predictions
+        self.is_regression = None  # Will be set when model is loaded
+    
+    def _get_default_tree_indices(self) -> List[int]:
+        """
+        Get default tree indices at quantiles, adjusted for multi-class models.
+        
+        Returns tree indices at: 1, 20%, 40%, 60%, 80%, 100% of total trees.
+        For models with 10+ trees, this returns exactly 6 indices.
+        
+        Returns:
+            Sorted list of tree indices
+        """
+        num_trees = len(self.tree_analyzer.trees)
+        if self.num_classes and self.num_classes > 2:
+            num_trees = num_trees // self.num_classes
+        
+        return sorted(set([1, num_trees] + 
+            list(np.quantile(range(1, num_trees + 1), [0.2, 0.4, 0.6, 0.8]).astype(int))))
     
     def load_data_from_parquets(self, data_dir_path: str, 
                                cols_to_load: Optional[List[str]] = None,
@@ -87,17 +105,17 @@ class ModelAnalyzer:
         # Determine model type from objective
         objective = self.tree_analyzer.objective
         objective_name = objective.get("name", "") if isinstance(objective, dict) else str(objective)
-        is_regression = "reg:" in objective_name or "squarederror" in objective_name
+        self.is_regression = "reg:" in objective_name or "squarederror" in objective_name
         
         # Load model
-        self.xgb_model = xgb.XGBRegressor() if is_regression else xgb.XGBClassifier()
+        self.xgb_model = xgb.XGBRegressor() if self.is_regression else xgb.XGBClassifier()
         self.xgb_model.load_model(json_path)
         
         # Initialize base_score adjustment (computed lazily when first needed)
         self.base_score_adjustment = None
         self._base_score_computed = False
         
-        if not is_regression:
+        if not self.is_regression:
             print(f"📊 Correct base_score from JSON: {self.correct_base_score:.6f} "
                   f"→ {expit(self.correct_base_score):.6f} prob ({expit(self.correct_base_score)*100:.4f}%)")
         
@@ -511,21 +529,28 @@ class ModelAnalyzer:
         
         Shows how predictions change as more trees are added.
         For multi-class models, shows predictions for the target class.
+        For regression models, shows raw predictions (no sigmoid transformation).
         
         Args:
-            tree_indices: List of tree indices to evaluate. If None, uses quintiles
-                of the total number of trees (20%, 40%, 60%, 80%, 100%).
+            tree_indices: List of tree indices to evaluate. If None, auto-generates
+                         based on model size.
             n_records: Number of records to analyze
             mode: "raw" (default), "probability", or "logit" - Y-axis scale
-                - "raw": Probability without base_score correction (original behavior)
-                - "probability": Probability with base_score correction
-                - "logit": Logit with base_score correction
+                - For classification:
+                    - "raw": Probability without base_score correction
+                    - "probability": Probability with base_score correction
+                    - "logit": Logit with base_score correction
+                - For regression: mode is ignored, raw predictions are always used
         """
         self._check_data_and_model()
         
         X = self.df[self.tree_analyzer.feature_names].iloc[:n_records]
         
-        if not self._base_score_computed:
+        # Auto-generate tree indices if not provided
+        if tree_indices is None:
+            tree_indices = self._get_default_tree_indices()
+        
+        if not self._base_score_computed and not self.is_regression:
             self._compute_base_score_adjustment(X.head(min(100, len(X))))
         
         import xgboost as xgb
@@ -550,24 +575,28 @@ class ModelAnalyzer:
             else:
                 logits_target = booster.predict(dtest, iteration_range=(0, k), output_margin=True)
             
-            # Apply transformations based on mode
-            if mode == "raw":
-                # Raw mode: convert to probability without base_score correction
-                scores = expit(logits_target)
-            
-            elif mode == "probability" or mode == "logit":
-                # For corrected modes: apply base_score correction
-                if not self._base_score_computed:
-                    self._compute_base_score_adjustment(X.head(min(100, len(X))))
-                
-                corrected_logits = logits_target + self.base_score_adjustment
-                
-                if mode == "probability":
-                    scores = expit(corrected_logits)
-                else:  # mode == "logit"
-                    scores = corrected_logits
+            # For regression models, use raw predictions directly
+            if self.is_regression:
+                scores = logits_target
             else:
-                raise ValueError(f"Invalid mode '{mode}'. Must be 'raw', 'probability', or 'logit'")
+                # Apply transformations based on mode (classification only)
+                if mode == "raw":
+                    # Raw mode: convert to probability without base_score correction
+                    scores = expit(logits_target)
+                
+                elif mode == "probability" or mode == "logit":
+                    # For corrected modes: apply base_score correction
+                    if not self._base_score_computed:
+                        self._compute_base_score_adjustment(X.head(min(100, len(X))))
+                    
+                    corrected_logits = logits_target + self.base_score_adjustment
+                    
+                    if mode == "probability":
+                        scores = expit(corrected_logits)
+                    else:  # mode == "logit"
+                        scores = corrected_logits
+                else:
+                    raise ValueError(f"Invalid mode '{mode}'. Must be 'raw', 'probability', or 'logit'")
             
             scores_matrix.append(scores)
         
@@ -589,8 +618,10 @@ class ModelAnalyzer:
         
         ax.set_xlabel("Tree Index")
         
-        # Set ylabel based on mode
-        if mode == "logit":
+        # Set ylabel based on model type and mode
+        if self.is_regression:
+            ylabel = "Predicted Value"
+        elif mode == "logit":
             ylabel = "Predicted Logit"
         elif mode == "raw":
             ylabel = "Model Score (uncorrected base_score)"
@@ -598,9 +629,14 @@ class ModelAnalyzer:
             ylabel = "Predicted Probability"
         ax.set_ylabel(ylabel)
         
-        title = f"Class {self.target_class} " if self.num_classes > 2 else ""
-        mode_label = "Raw" if mode == "raw" else mode.title()
-        ax.set_title(f"{title}Early Exit Score Across Trees [{mode_label} Scale]")
+        # Build title
+        if self.is_regression:
+            title = "Prediction Evolution Across Trees [Regression]"
+        else:
+            class_prefix = f"Class {self.target_class} " if self.num_classes > 2 else ""
+            mode_label = "Raw" if mode == "raw" else mode.title()
+            title = f"{class_prefix}Early Exit Score Across Trees [{mode_label} Scale]"
+        ax.set_title(title)
         ax.legend()
         ax.grid(True)
         
@@ -610,6 +646,7 @@ class ModelAnalyzer:
         filepath = os.path.join(self.tree_analyzer.plotter.save_dir, 'scores_across_trees.png')
         plt.savefig(filepath, dpi=300, bbox_inches='tight')
         plt.close()
+        print(f"✅ Generated: scores_across_trees.png")
     
     def _compute_inversion_rate(self, scores_early: np.ndarray, scores_final: np.ndarray) -> float:
         """
@@ -655,26 +692,21 @@ class ModelAnalyzer:
         Also creates scatter plots and detailed score evolution visualizations.
         
         Args:
-            early_exit_points: List of tree indices for early exit (default: [100, 500, 1000, 2000, 3000, 4000])
+            early_exit_points: List of tree indices for early exit. If None, uses quintiles
+                              (1, 20%, 40%, 60%, 80%, 100% of trees).
             n_records: Number of data points for analysis (default: 1000)
             n_detailed_curves: Number of curves for detailed evolution plot (default: 100)
         """
         self._check_data_and_model()
         
+        # Auto-generate early exit points using quantiles if not provided
         if early_exit_points is None:
-            early_exit_points = [100, 500, 1000, 2000, 3000, 4000]
+            early_exit_points = self._get_default_tree_indices()
         
-        # Get total number of trees
+        # Get total number of trees (for final prediction comparison)
         total_trees = len(self.tree_analyzer.trees)
         if self.num_classes and self.num_classes > 2:
             total_trees = total_trees // self.num_classes
-        
-        # Filter exit points that are within the model's tree count
-        early_exit_points = [ep for ep in early_exit_points if ep < total_trees]
-        
-        if not early_exit_points:
-            print(f"Warning: No valid early exit points (model has {total_trees} trees)")
-            return
         
         print('='*70)
         print('Early Exit Performance Analysis')
@@ -1019,3 +1051,57 @@ class ModelAnalyzer:
             raise ValueError("Data not loaded. Call load_data_from_parquets() first.")
         if self.xgb_model is None:
             raise ValueError("XGBoost model not loaded. Call load_xgb_model() first.")
+    
+    def evaluate_model_performance(self, y_true, y_pred) -> dict:
+        """
+        Compute and save model performance metrics.
+        
+        Args:
+            y_true: Ground truth labels/values
+            y_pred: Model predictions (probabilities for classification, values for regression)
+        
+        Returns:
+            Dictionary of metric names to values
+        """
+        from ..utils.metrics_utils import compute_model_metrics
+        
+        objective = self.tree_analyzer.objective
+        metrics = compute_model_metrics(y_true, y_pred, objective)
+        
+        # Save to file
+        save_dir = self.tree_analyzer.plotter.save_dir
+        filepath = os.path.join(save_dir, "model_performance_metrics.txt")
+        
+        with open(filepath, 'w') as f:
+            f.write("Model Performance Metrics\n")
+            f.write("=" * 40 + "\n")
+            for name, value in metrics.items():
+                f.write(f"{name}: {round(value, 6)}\n")
+        
+        return metrics
+    
+    def generate_calibration_curves(self, y_true, y_pred, X=None, n_bins: int = 10):
+        """
+        Generate calibration curves for binary classification.
+        
+        Args:
+            y_true: Ground truth binary labels
+            y_pred: Predicted probabilities
+            X: Feature data matching y_true/y_pred (optional, for per-feature curves)
+            n_bins: Number of bins for calibration curve
+        """
+        from ..utils.metrics_utils import plot_calibration_curve
+        
+        save_dir = self.tree_analyzer.plotter.save_dir
+        
+        # Main calibration curve: sort by y_pred, plot y_pred vs y_true
+        filepath = plot_calibration_curve(y_pred, y_pred, y_true, 'predicted_prob', save_dir, n_bins)
+        print(f"  Generated: {filepath}")
+        
+        # Per-feature calibration curves (if X provided)
+        if X is not None:
+            X_arr = X.values if hasattr(X, 'values') else X
+            for i, feature in enumerate(self.tree_analyzer.feature_names):
+                # Sort by feature, but plot y_pred vs y_true
+                filepath = plot_calibration_curve(X_arr[:, i], y_pred, y_true, feature, save_dir, n_bins)
+                print(f"  Generated: {filepath}")

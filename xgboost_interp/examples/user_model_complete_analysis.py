@@ -18,7 +18,7 @@ import argparse
 import time
 
 # Add the package to path for local development
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from xgboost_interp import TreeAnalyzer, ModelAnalyzer
 from xgboost_interp.plotting import FeaturePlotter, TreePlotter, InteractivePlotter
@@ -232,7 +232,7 @@ def run_all_tree_level_analysis(tree_analyzer):
     print("="*70)
 
 
-def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, target_class=None, plotting_mode='raw'):
+def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, target_class=None, plotting_mode='raw', target_column=None):
     """
     Run ALL data-dependent analysis functions.
     
@@ -274,6 +274,36 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
         print(f"❌ Failed to load model: {e}")
         return False
     
+    # Model performance metrics (if target column provided)
+    if target_column and target_column in model_analyzer.df.columns:
+        print(f"\n[2.5/5] Computing model performance metrics...")
+        y_true = model_analyzer.df[target_column].values
+        feature_names = tree_analyzer.feature_names
+        X = model_analyzer.df[feature_names].values
+        
+        # Get predictions based on model type
+        is_binary = False
+        if model_analyzer.is_regression:
+            y_pred = model_analyzer.xgb_model.predict(X)
+        else:
+            y_pred = model_analyzer.xgb_model.predict_proba(X)
+            if y_pred.ndim == 2 and y_pred.shape[1] == 2:
+                y_pred = y_pred[:, 1]  # Binary: use positive class proba
+                is_binary = True
+        
+        metrics = model_analyzer.evaluate_model_performance(y_true, y_pred)
+        print("Model Performance Metrics:")
+        for k, v in metrics.items():
+            print(f"  {k}: {round(v, 6)}")
+        print(f"  Saved to: {tree_analyzer.plotter.save_dir}/model_performance_metrics.txt")
+        
+        # Calibration curves (binary classification only)
+        if is_binary:
+            print("\nGenerating calibration curves...")
+            model_analyzer.generate_calibration_curves(y_true, y_pred, X=X, n_bins=10)
+    elif target_column:
+        print(f"\n[2.5/5] Target column '{target_column}' not found in data. Skipping metrics.")
+    
     # Partial Dependence Plots for all features
     print("\n[3/4] Generating Partial Dependence Plots (PDPs) for all features...")
     print("This may take a few minutes depending on dataset size...")
@@ -300,20 +330,10 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
     print(f"   Saved in: {tree_analyzer.plotter.save_dir}/pdp/")
     
     # Prediction evolution across trees
-    print("\n[4/4] Generating prediction evolution analysis...")
+    print("\n[4/5] Generating prediction evolution analysis...")
     try:
-        # Create a reasonable set of tree indices to analyze
-        num_trees = tree_analyzer.num_trees_total
-        if num_trees <= 10:
-            tree_indices = list(range(1, num_trees + 1))
-        elif num_trees <= 50:
-            tree_indices = list(range(5, num_trees + 1, 5))
-        elif num_trees <= 200:
-            tree_indices = list(range(10, num_trees + 1, 10))
-        else:
-            # For very large ensembles, sample more sparsely
-            step = max(20, num_trees // 10)
-            tree_indices = list(range(step, num_trees + 1, step))
+        # Create tree indices using quantiles (1, 20%, 40%, 60%, 80%, 100%)
+        tree_indices = model_analyzer._get_default_tree_indices()
         
         print(f"  Analyzing predictions at tree indices: {tree_indices}")
         model_analyzer.plot_scores_across_trees(
@@ -324,6 +344,16 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
         print("  ✅ Generated: scores_across_trees.png")
     except Exception as e:
         print(f"  ⚠️ Failed: {e}")
+    
+    # Early exit performance analysis
+    print("\n[5/5] Generating early exit performance analysis...")
+    try:
+        model_analyzer.analyze_early_exit_performance(
+            n_records=min(5000, len(model_analyzer.df)),
+            n_detailed_curves=1000
+        )
+    except Exception as e:
+        print(f"⚠️ Could not generate early exit analysis: {e}")
     
     # ALE plots (optional - requires pyALE)
     print("\n[BONUS] Attempting to generate ALE plots (requires pyALE)...")
@@ -552,6 +582,13 @@ For multi-class models, you can run this script multiple times with different
         help='Y-axis mode for PDPs and score evolution plots (default: raw). Options: raw, probability, logit'
     )
     
+    parser.add_argument(
+        '--target-column',
+        type=str,
+        default=None,
+        help='Name of target column in data for computing model performance metrics'
+    )
+    
     args = parser.parse_args()
     
     # Validate inputs
@@ -602,7 +639,8 @@ For multi-class models, you can run this script multiple times with different
                 tree_analyzer, 
                 args.data_dir,
                 args.target_class,
-                args.plotting_mode
+                args.plotting_mode,
+                args.target_column
             )
         except Exception as e:
             print(f"❌ Failed to run data-dependent analysis: {e}")

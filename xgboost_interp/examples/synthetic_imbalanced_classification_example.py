@@ -24,7 +24,7 @@ import os
 import sys
 
 # Add the package to path for local development
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from xgboost_interp import TreeAnalyzer, ModelAnalyzer
 
@@ -33,7 +33,7 @@ from xgboost_interp import TreeAnalyzer, ModelAnalyzer
 # =============================================================================
 
 RANDOM_SEED = 10
-N_SAMPLES = 50000
+N_SAMPLES = 100000
 TARGET_POSITIVE_RATE = 0.10  # 10% positive rate
 
 # Feature effect strengths (coefficients for log-odds)
@@ -515,7 +515,7 @@ def train_xgboost_model(
     
     # Train model (no scale_pos_weight since we're not downsampling)
     model = xgb.XGBClassifier(
-        n_estimators=500,
+        n_estimators=3000,
         max_depth=6,
         learning_rate=0.1,
         subsample=0.8,
@@ -558,6 +558,9 @@ def run_full_analysis(
     model_path: str,
     data_df: pd.DataFrame,
     feature_names: list,
+    y_test=None,
+    y_pred_proba=None,
+    X_test=None,
     output_dir: str = "examples/synthetic_imbalanced_classification/output"
 ):
     """Run complete interpretability analysis on the trained model."""
@@ -614,6 +617,18 @@ def run_full_analysis(
     model_analyzer.load_data_from_parquets(data_dir, num_files_to_read=1)
     model_analyzer.load_xgb_model(model_path)
     
+    # Model performance metrics
+    if y_test is not None and y_pred_proba is not None:
+        print("\nComputing model performance metrics...")
+        metrics = model_analyzer.evaluate_model_performance(y_test, y_pred_proba)
+        print("Model Performance Metrics:")
+        for k, v in metrics.items():
+            print(f"  {k}: {round(v, 6)}")
+        print(f"  Saved to: {output_dir}/model_performance_metrics.txt")
+        
+        print("\nGenerating calibration curves...")
+        model_analyzer.generate_calibration_curves(y_test, y_pred_proba, X=X_test, n_bins=10)
+    
     # Select subset of features for detailed analysis
     # (analyzing all features would take too long)
     important_features = [
@@ -655,10 +670,17 @@ def run_full_analysis(
     # Prediction Evolution
     print("\nGenerating prediction evolution plot...")
     try:
-        model_analyzer.plot_scores_across_trees(n_records=500)
+        model_analyzer.plot_scores_across_trees(n_records=1000)
         print("  ✅ Scores across trees plot saved")
     except Exception as e:
         print(f"  ⚠️ Could not generate scores across trees: {e}")
+    
+    # Early exit performance analysis
+    print("\nGenerating early exit performance analysis...")
+    try:
+        model_analyzer.analyze_early_exit_performance(n_records=5000, n_detailed_curves=1000)
+    except Exception as e:
+        print(f"  ⚠️ Could not generate early exit analysis: {e}")
     
     # ALE Plots
     print("\nGenerating ALE Plots...")
@@ -762,8 +784,11 @@ def main():
         df, feature_names, model_path
     )
     
+    # Get predictions for metrics
+    y_pred_proba = model.predict_proba(X_test)[:, 1]
+    
     # 3. Run full analysis
-    run_full_analysis(model_path, df, feature_names)
+    run_full_analysis(model_path, df, feature_names, y_test, y_pred_proba, X_test)
     
     # 4. Generate feature PDF plots for all features
     plot_all_feature_pdfs(df, feature_names)
