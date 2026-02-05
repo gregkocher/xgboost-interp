@@ -147,8 +147,8 @@ Model: california_housing_xgb.json
 Data:  housing_data/
 ================================================================================
 
-🔧 Initializing TreeAnalyzer...
-✅ TreeAnalyzer initialized successfully
+Initializing TreeAnalyzer...
+TreeAnalyzer initialized successfully
 
 ======================================================================
 PART 1: TREE-LEVEL ANALYSIS (No Data Required)
@@ -169,38 +169,38 @@ Feature Preview          : ['MedInc', 'HouseAge', 'AveRooms', ...]
 ------------------------------
 
 [2/15] Generating combined feature importance plot...
-✅ Generated: feature_importance_combined.png
+Generated: feature_importance_combined.png
 
 ... [continues for all analyses] ...
 
 ======================================================================
-✅ PART 1 COMPLETE - All tree-level analysis finished!
+PART 1 COMPLETE - All tree-level analysis finished
 ======================================================================
 
 ... [Part 2 continues with data-dependent analysis] ...
 
 ================================================================================
-📊 ANALYSIS SUMMARY REPORT
+ANALYSIS SUMMARY REPORT
 ================================================================================
 
-📁 Output Directory: california_housing_xgb/
-📈 Total Plots Generated: 32
+Output Directory: california_housing_xgb/
+Total Plots Generated: 32
 
-📊 Plot Categories:
-  🌳 Tree Structure Plots: 10
-  🔧 Feature Analysis Plots: 5
-  📉 Partial Dependence Plots: 8
-  📊 Marginal Impact Plots: 8
-  📋 Other Plots: 1
+Plot Categories:
+  Tree Structure Plots: 10
+  Feature Analysis Plots: 5
+  Partial Dependence Plots: 8
+  Marginal Impact Plots: 8
+  Other Plots: 1
 
-📄 All Generated Files:
-  ✅ cumulative_gain.png
-  ✅ feature_importance_combined.png
-  ✅ PDP_MedInc.png
+All Generated Files:
+  cumulative_gain.png
+  feature_importance_combined.png
+  PDP_MedInc.png
   ... [full list] ...
 
 ================================================================================
-🎉 ANALYSIS COMPLETE!
+ANALYSIS COMPLETE
 ================================================================================
 
 All visualizations saved to: california_housing_xgb/

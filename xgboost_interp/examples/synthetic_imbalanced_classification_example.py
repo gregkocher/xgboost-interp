@@ -17,6 +17,9 @@ from sklearn.metrics import (
     accuracy_score, classification_report, roc_auc_score, 
     precision_recall_curve, average_precision_score
 )
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+from scipy import stats
 import os
 import sys
 
@@ -37,6 +40,7 @@ TARGET_POSITIVE_RATE = 0.10  # 10% positive rate
 EFFECT_STRONG = 0.8
 EFFECT_MEDIUM = 0.5
 EFFECT_WEAK = 0.2
+EFFECT_VERY_STRONG = 1.5  # For quadratic features to make relationship obvious
 
 # Normal iid feature parameters: (mean, std, effect_coefficient)
 NORMAL_IID_PARAMS = {
@@ -88,10 +92,17 @@ BINARY_PARAMS = {
 UNIFORM_PARAMS = {
     'unif_linear_pos': (0, 1, 'linear', EFFECT_MEDIUM),
     'unif_linear_neg': (0, 1, 'linear', -EFFECT_MEDIUM),
-    'unif_quad_pos': (0, 1, 'quadratic', EFFECT_MEDIUM),
-    'unif_quad_neg': (0, 1, 'quadratic', -EFFECT_MEDIUM),
+    'unif_quad_pos': (0, 1, 'quadratic', EFFECT_VERY_STRONG),  # Strong U-shaped
+    'unif_quad_neg': (0, 1, 'quadratic', -EFFECT_VERY_STRONG),  # Strong inverted-U
     'unif_none_1': (0, 10, 'none', 0),
     'unif_none_2': (-5, 5, 'none', 0),
+}
+
+# Trigonometric features: (frequency, effect)
+# x drawn from Uniform(0, 2π), then sin(freq*x) or cos(freq*x) applied
+TRIG_PARAMS = {
+    'trig_sin_pos': (3, EFFECT_STRONG),   # sin(3x): 3 cycles in [0, 2π]
+    'trig_cos_pos': (3, EFFECT_STRONG),   # cos(3x): 3 cycles in [0, 2π]
 }
 
 # Noise features (no signal at all)
@@ -221,7 +232,25 @@ def generate_synthetic_data(
         # 'none' type: no effect
     
     # -------------------------------------------------------------------------
-    # 6. Noise Features (no signal)
+    # 6. Trigonometric Features (periodic relationships)
+    # -------------------------------------------------------------------------
+    print("  Generating Trigonometric features...")
+    for feat_name, (frequency, effect) in TRIG_PARAMS.items():
+        # x drawn from Uniform(0, 2π)
+        x_values = np.random.uniform(0, 2 * np.pi, n_samples)
+        data[feat_name + '_x'] = x_values  # Store the raw x value
+        
+        # Apply sin or cos based on feature name
+        if 'sin' in feat_name:
+            trig_values = np.sin(frequency * x_values)
+        else:  # cos
+            trig_values = np.cos(frequency * x_values)
+        
+        # Add to log-odds (trig_values already in [-1, 1])
+        log_odds += effect * trig_values
+    
+    # -------------------------------------------------------------------------
+    # 7. Noise Features (no signal)
     # -------------------------------------------------------------------------
     print("  Generating Noise features...")
     data['noise_norm'] = np.random.normal(0, 1, n_samples)
@@ -229,7 +258,7 @@ def generate_synthetic_data(
     data['noise_cat'] = np.random.randint(0, 50, n_samples)
     
     # -------------------------------------------------------------------------
-    # 7. Generate Target
+    # 8. Generate Target
     # -------------------------------------------------------------------------
     print("  Generating target labels...")
     
@@ -276,8 +305,187 @@ def get_feature_names() -> list:
     features.extend(CATEGORICAL_PARAMS.keys())
     features.extend(BINARY_PARAMS.keys())
     features.extend(UNIFORM_PARAMS.keys())
+    # Trig features: the raw x values (used as model input)
+    features.extend([f"{name}_x" for name in TRIG_PARAMS.keys()])
     features.extend(NOISE_FEATURES)
     return features
+
+
+# =============================================================================
+# VISUALIZATION FUNCTIONS
+# =============================================================================
+
+def plot_feature_pdf(
+    df: pd.DataFrame,
+    feature_name: str,
+    target_col: str = 'target',
+    save_dir: str = "examples/synthetic_imbalanced_classification/output/feature_pdfs",
+    n_bins: int = 100
+) -> None:
+    """
+    Plot feature distribution with positive rate coloring and KDE overlay.
+    
+    Creates a visualization showing:
+    1. Histogram (density-normalized) with bars colored by empirical positive rate
+    2. KDE overlay as proper PDF (area = 1)
+    3. Scatter of individual points at y=0 colored by label
+    
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame containing feature and target columns
+    feature_name : str
+        Name of the feature column to plot
+    target_col : str
+        Name of the target column (default: 'target')
+    save_dir : str
+        Directory to save the plot
+    n_bins : int
+        Number of histogram bins (default: 100)
+    """
+    os.makedirs(save_dir, exist_ok=True)
+    
+    feature_values = df[feature_name].values
+    target_values = df[target_col].values
+    
+    # Create figure
+    fig, ax = plt.subplots(figsize=(12, 6))
+    
+    # -------------------------------------------------------------------------
+    # 1. Compute histogram with positive rate per bin (density-normalized)
+    # -------------------------------------------------------------------------
+    bin_edges = np.linspace(feature_values.min(), feature_values.max(), n_bins + 1)
+    bin_indices = np.digitize(feature_values, bin_edges) - 1
+    bin_indices = np.clip(bin_indices, 0, n_bins - 1)  # Handle edge cases
+    
+    # Compute counts and positive rates per bin
+    bin_counts = np.zeros(n_bins)
+    bin_positive_rates = np.zeros(n_bins)
+    
+    for i in range(n_bins):
+        mask = bin_indices == i
+        bin_counts[i] = mask.sum()
+        if bin_counts[i] > 0:
+            bin_positive_rates[i] = target_values[mask].mean()
+    
+    # Convert counts to density (so histogram area = 1)
+    bin_width = bin_edges[1] - bin_edges[0]
+    n_total = len(feature_values)
+    bin_density = bin_counts / (n_total * bin_width)
+    
+    # Create colormap: light gray (0) → bright red (1)
+    colors_light_gray = np.array([0.85, 0.85, 0.85, 1.0])  # Light gray
+    colors_bright_red = np.array([1.0, 0.0, 0.0, 1.0])     # Bright red
+    
+    # Interpolate colors based on positive rate
+    bar_colors = []
+    for rate in bin_positive_rates:
+        color = (1 - rate) * colors_light_gray + rate * colors_bright_red
+        bar_colors.append(color)
+    
+    # Plot histogram bars (density-normalized)
+    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+    
+    ax.bar(bin_centers, bin_density, width=bin_width, color=bar_colors, 
+           edgecolor='white', linewidth=0.3, zorder=2)
+    
+    # -------------------------------------------------------------------------
+    # 2. Overlay KDE as proper PDF (area = 1, no scaling)
+    # -------------------------------------------------------------------------
+    kde = stats.gaussian_kde(feature_values)
+    x_kde = np.linspace(feature_values.min(), feature_values.max(), 500)
+    kde_values = kde(x_kde)
+    
+    ax.plot(x_kde, kde_values, color='black', linewidth=2, label='KDE', zorder=3)
+    
+    # -------------------------------------------------------------------------
+    # 3. Scatter individual points at y=0
+    # -------------------------------------------------------------------------
+    # Add small jitter to y for visibility (scaled to density range)
+    max_density = max(bin_density.max(), kde_values.max()) if bin_density.max() > 0 else 1
+    y_jitter = np.random.uniform(-0.02, 0.02, len(feature_values)) * max_density
+    
+    # Colors: light gray for label=0, bright red for label=1
+    scatter_colors = np.where(
+        target_values == 0,
+        'lightgray',
+        'red'
+    )
+    
+    ax.scatter(
+        feature_values, y_jitter, 
+        c=scatter_colors, 
+        alpha=0.15, 
+        s=3, 
+        zorder=1,
+        rasterized=True  # Optimize for large number of points
+    )
+    
+    # -------------------------------------------------------------------------
+    # 4. Formatting
+    # -------------------------------------------------------------------------
+    ax.set_xlabel(feature_name, fontsize=12)
+    ax.set_ylabel('Density', fontsize=12)
+    ax.set_title(f'Distribution of {feature_name}\n(bar color = positive rate: gray=0%, red=100%)', 
+                 fontsize=14)
+    
+    # Add colorbar for positive rate
+    sm = plt.cm.ScalarMappable(
+        cmap=mcolors.LinearSegmentedColormap.from_list('pos_rate', ['lightgray', 'red']),
+        norm=plt.Normalize(0, 1)
+    )
+    sm.set_array([])
+    cbar = plt.colorbar(sm, ax=ax, shrink=0.6, pad=0.02)
+    cbar.set_label('Positive Rate', fontsize=10)
+    
+    # Add legend for scatter
+    ax.scatter([], [], c='lightgray', alpha=0.5, s=20, label='Label = 0')
+    ax.scatter([], [], c='red', alpha=0.5, s=20, label='Label = 1')
+    ax.legend(loc='upper right', fontsize=9)
+    
+    # Set y-axis to start at a small negative value to show scatter points
+    ax.set_ylim(bottom=-0.05 * max_density)
+    
+    plt.tight_layout()
+    
+    # Save
+    save_path = os.path.join(save_dir, f'{feature_name}_pdf.png')
+    plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.close()
+
+
+def plot_all_feature_pdfs(
+    df: pd.DataFrame,
+    feature_names: list,
+    target_col: str = 'target',
+    save_dir: str = "examples/synthetic_imbalanced_classification/output/feature_pdfs",
+    n_bins: int = 100
+) -> None:
+    """
+    Generate PDF plots for all features.
+    
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame containing features and target
+    feature_names : list
+        List of feature column names
+    target_col : str
+        Name of the target column
+    save_dir : str
+        Directory to save plots
+    n_bins : int
+        Number of histogram bins
+    """
+    print(f"\nGenerating feature PDF plots for {len(feature_names)} features...")
+    os.makedirs(save_dir, exist_ok=True)
+    
+    for i, feature in enumerate(feature_names):
+        plot_feature_pdf(df, feature, target_col, save_dir, n_bins)
+        if (i + 1) % 10 == 0 or (i + 1) == len(feature_names):
+            print(f"  [{i+1}/{len(feature_names)}] Feature PDF plots generated")
+    
+    print(f"  ✅ All feature PDF plots saved to: {save_dir}")
 
 
 # =============================================================================
@@ -422,7 +630,7 @@ def run_full_analysis(
         model_analyzer.generate_calibration_curves(y_test, y_pred_proba, X=X_test, n_bins=10)
     
     # Select subset of features for detailed analysis
-    # (analyzing all 37 features would take too long)
+    # (analyzing all features would take too long)
     important_features = [
         # Strong effects (should be most important)
         'norm_iid_pos_strong', 'norm_iid_neg_strong',
@@ -430,6 +638,8 @@ def run_full_analysis(
         # Medium effects
         'norm_corr_1_pos', 'norm_corr_3_neg',
         'unif_linear_pos', 'unif_quad_pos',
+        # Trigonometric (periodic relationships)
+        'trig_sin_pos_x', 'trig_cos_pos_x',
         # Categorical
         'cat_15_strong', 'cat_75_mixed',
         # Noise (should have minimal importance)
@@ -564,6 +774,7 @@ def main():
     print(f"  - Categorical: {len(CATEGORICAL_PARAMS)} features")
     print(f"  - Binary: {len(BINARY_PARAMS)} features")
     print(f"  - Uniform: {len(UNIFORM_PARAMS)} features")
+    print(f"  - Trigonometric: {len(TRIG_PARAMS)} features")
     print(f"  - Noise: {len(NOISE_FEATURES)} features")
     print(f"  - Total: {len(feature_names)} features")
     
@@ -579,6 +790,9 @@ def main():
     # 3. Run full analysis
     run_full_analysis(model_path, df, feature_names, y_test, y_pred_proba, X_test)
     
+    # 4. Generate feature PDF plots for all features
+    plot_all_feature_pdfs(df, feature_names)
+    
     print("\n" + "="*65)
     print("🎉 Synthetic Imbalanced Classification Example Complete!")
     print("="*65)
@@ -587,7 +801,8 @@ def main():
     print("  2. Noise features should have minimal/zero importance")
     print("  3. Correlated features may share importance due to substitutability")
     print("  4. Categorical features show step patterns in PDP/ALE plots")
-    print("  5. Quadratic uniform features show curved relationships")
+    print("  5. Quadratic uniform features show U-shaped or inverted-U relationships")
+    print("  6. Trigonometric features show periodic wave patterns in PDP/ALE plots")
 
 
 if __name__ == "__main__":

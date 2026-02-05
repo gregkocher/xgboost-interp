@@ -1,6 +1,6 @@
 # Contributing to xgboost-interp
 
-Thank you for your interest in contributing! This guide will help you get started.
+Thank you for your interest in contributing. This guide will help you get started.
 
 ## Getting Started
 

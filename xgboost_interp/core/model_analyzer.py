@@ -555,6 +555,14 @@ class ModelAnalyzer:
         
         import xgboost as xgb
         booster = self.xgb_model.get_booster()
+        
+        # Auto-compute quintile tree indices if not provided
+        if tree_indices is None:
+            n_trees = booster.num_boosted_rounds()
+            # Start at 1 (first tree), then quintiles: 20%, 40%, 60%, 80%, 100%
+            tree_indices = [1] + [n_trees * i // 5 for i in range(1, 6)]
+            # Ensure final index is exactly the total number of trees
+            tree_indices[-1] = n_trees
         dtest = xgb.DMatrix(X, feature_names=self.tree_analyzer.feature_names)
         
         # Compute predictions at each tree index
