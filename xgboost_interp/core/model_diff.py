@@ -151,9 +151,9 @@ class ModelDiff:
         fig, ax = plt.subplots(figsize=(12, 6))
         
         ax.plot(range(len(cumulative_a)), cumulative_a, 
-                linewidth=2, label=self.label_a, color='blue')
+                linewidth=2, label=self.label_a, color='red')
         ax.plot(range(len(cumulative_b)), cumulative_b, 
-                linewidth=2, label=self.label_b, color='red')
+                linewidth=2, label=self.label_b, color='blue')
         
         ax.set_xlabel("Tree Index")
         ax.set_ylabel("Cumulative Loss Change")
@@ -338,16 +338,16 @@ class ModelDiff:
             ax.axhline(y=0, color='black', linestyle=':', linewidth=0.5)
         else:
             # Line plot for continuous features
-            # Plot individual curves (ICE) with different grays
+            # Plot individual curves (ICE) colored to match their model
             if ice_a is not None:
                 for i, ice in enumerate(ice_a):
                     label = f"{self.label_a} ICE" if i == 0 else None
-                    ax.plot(grid_values, ice, color='#AAAAAA', alpha=0.15, linewidth=0.8, label=label)
+                    ax.plot(grid_values, ice, color='#FF9999', alpha=0.10, linewidth=0.8, label=label)
             
             if ice_b is not None:
                 for i, ice in enumerate(ice_b):
                     label = f"{self.label_b} ICE" if i == 0 else None
-                    ax.plot(grid_values, ice, color='#666666', alpha=0.15, linewidth=0.8, label=label)
+                    ax.plot(grid_values, ice, color='#6699FF', alpha=0.10, linewidth=0.8, label=label)
             
             # Plot averages
             ax.plot(grid_values, avg_a, color='red', linestyle='-', 
