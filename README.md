@@ -79,7 +79,8 @@ python3 xgboost_interp/examples/user_model_complete_analysis.py YOUR_MODEL.json 
 Example scripts are located in `xgboost_interp/examples/`:
 
 - `california_housing_example.py`: Complete example with California Housing dataset (regression)
-- `iris_classification_example.py`: Classification example with Iris dataset  
+- `iris_classification_example.py`: Classification example with Iris dataset
+- `synthetic_imbalanced_classification_example.py`: Synthetic data with known ground-truth relationships for validation
 - `user_model_complete_analysis.py`: **Run ALL analysis functions on your own model**
 - `model_diffing_example.py`: **Compare two XGBoost models** -- structural and behavioral diff
 - `basic_analysis.py`: Tree-level analysis without data (requires your model)
@@ -91,6 +92,7 @@ Example scripts are located in `xgboost_interp/examples/`:
 # Run individual examples
 python3 xgboost_interp/examples/california_housing_example.py
 python3 xgboost_interp/examples/iris_classification_example.py
+python3 xgboost_interp/examples/synthetic_imbalanced_classification_example.py
 
 # Run model diffing example (trains two models and compares them)
 python3 xgboost_interp/examples/model_diffing_example.py
@@ -98,9 +100,27 @@ python3 xgboost_interp/examples/model_diffing_example.py
 
 The examples are self-contained and include:
 - Data loading and preprocessing
-- XGBoost model training (100 trees for housing, 50 for iris)
+- XGBoost model training (100 trees for housing, 50 for iris, 3000 for synthetic)
 - Model saving as JSON
 - Complete interpretability analysis
+
+### Synthetic Imbalanced Classification Example
+
+The synthetic example is designed for validating interpretability tools against known ground-truth:
+
+- **100,000 samples** with 10% positive rate (imbalanced binary classification)
+- **39 features** with known effects: Normal (IID and correlated), Categorical (15-200 cardinality), Binary, Uniform (linear and quadratic), Trigonometric (periodic), and Noise
+- **3,000-tree model** for comprehensive early exit analysis
+- Feature names encode their properties (e.g., `norm_iid_pos_strong`, `unif_quad_neg`, `noise_cat`)
+
+**Expected validation results:**
+- Strong effect features have high importance
+- Noise features have near-zero importance
+- Quadratic features show U-shaped PDP curves
+- Trigonometric features show periodic wave patterns in PDP
+- Categorical features show step patterns in PDP
+
+See `examples/synthetic_imbalanced_classification/SYNTHETIC_MODEL_README.md` for full feature documentation.
 
 ### Complete Analysis of Your Own Model
 
@@ -156,6 +176,9 @@ Extended analysis requiring actual data examples.
 - `plot_ale()`: Accumulated Local Effects plots
 - `plot_scores_across_trees()`: Prediction evolution analysis
 - `plot_marginal_impact_univariate()`: Feature-specific impact analysis
+- `analyze_early_exit_performance()`: Early exit metrics (inversion rate, MSE, Kendall-Tau, Spearman)
+- `evaluate_model_performance()`: Compute and save model performance metrics
+- `generate_calibration_curves()`: Calibration curves for binary classification
 
 
 ### ModelDiff

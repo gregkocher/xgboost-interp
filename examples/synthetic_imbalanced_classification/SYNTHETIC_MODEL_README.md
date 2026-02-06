@@ -7,7 +7,7 @@ This example generates synthetic data for binary classification with known featu
 - **Samples**: 50,000
 - **Positive Rate**: ~10% (imbalanced)
 - **Random Seed**: 10 (for reproducibility)
-- **Total Features**: 37
+- **Total Features**: 39
 
 ## Feature Groups
 
@@ -75,12 +75,30 @@ Uniformly distributed with linear or nonlinear relationships.
 |--------------|-------|--------------|
 | `unif_linear_pos` | [0, 1] | Linear positive (+0.5) |
 | `unif_linear_neg` | [0, 1] | Linear negative (-0.5) |
-| `unif_quad_pos` | [0, 1] | Quadratic positive (+0.5) |
-| `unif_quad_neg` | [0, 1] | Quadratic negative (-0.5) |
+| `unif_quad_pos` | [0, 1] | Quadratic U-shaped (+1.5, very strong) |
+| `unif_quad_neg` | [0, 1] | Quadratic inverted-U (-1.5, very strong) |
 | `unif_none_1` | [0, 10] | No effect |
 | `unif_none_2` | [-5, 5] | No effect |
 
-### 6. Noise Features (3)
+**Quadratic relationships**: 
+- `unif_quad_pos`: Both extremes (0 and 1) increase P(y=1), center (0.5) decreases it (U-shaped)
+- `unif_quad_neg`: Center increases P(y=1), both extremes decrease it (inverted-U)
+
+### 6. Trigonometric Features (2)
+
+Periodic features with sinusoidal relationships to the target.
+
+| Feature Name | Range | Relationship |
+|--------------|-------|--------------|
+| `trig_sin_pos_x` | [0, 2π] | sin(3x) with effect +0.8 |
+| `trig_cos_pos_x` | [0, 2π] | cos(3x) with effect +0.8 |
+
+These features complete **3 full cycles** in their range, creating periodic wave patterns:
+- At peaks of sin/cos, P(y=1) increases
+- At troughs of sin/cos, P(y=1) decreases
+- Tests whether XGBoost can learn non-monotonic, periodic relationships
+
+### 7. Noise Features (3)
 
 Pure noise with no signal - these should have minimal feature importance.
 
@@ -101,13 +119,14 @@ Pure noise with no signal - these should have minimal feature importance.
 
 When analyzing this model:
 
-- **High importance**: Features with "strong" in the name
-- **Medium importance**: Features with "medium" in the name
+- **High importance**: Features with "strong" in the name, quadratic features (very strong effect)
+- **Medium importance**: Features with "medium" in the name, trigonometric features
 - **Low importance**: Features with "weak" in the name
 - **Near-zero importance**: Features with "zero", "none", or "noise" in the name
 - **Correlated features**: May share importance due to substitutability
 - **Categorical features**: Should show step patterns in PDP/ALE
-- **Quadratic features**: Should show curved relationships
+- **Quadratic features**: Should show U-shaped or inverted-U relationships (very obvious due to strong effect)
+- **Trigonometric features**: Should show periodic wave patterns with 3 cycles in PDP/ALE
 
 ## Running the Example
 

@@ -1,10 +1,10 @@
 # Quick Start Guide
 
-## 🚀 Ready-to-Run Examples with Real Data
+## Ready-to-Run Examples with Real Data
 
-We've created complete examples that download data, train models, and demonstrate all interpretability features!
+Complete examples that download data, train models, and demonstrate all interpretability features.
 
-## 🌟 NEW: Complete Analysis of Your Own Model
+## Complete Analysis of Your Own Model
 
 **Already have a trained XGBoost model?** Use the comprehensive analysis script:
 
@@ -20,12 +20,12 @@ python xgboost_interp/examples/user_model_complete_analysis.py your_model.json d
 ```
 
 **What it does:**
-- ✅ Runs all 15 tree-level analysis functions
-- ✅ Generates partial dependence plots for ALL features
-- ✅ Creates marginal impact visualizations for ALL features
-- ✅ Shows prediction evolution across trees
-- ✅ Generates interactive tree visualizations
-- ✅ Produces comprehensive summary report
+- Runs all 15 tree-level analysis functions
+- Generates partial dependence plots for ALL features
+- Creates marginal impact visualizations for ALL features
+- Shows prediction evolution across trees
+- Generates interactive tree visualizations
+- Produces comprehensive summary report
 
 **Requirements:**
 - XGBoost model saved as JSON (use `model.save_model("model.json")`)
@@ -47,13 +47,16 @@ python run_examples.py
 
 ```bash
 # California Housing (Regression) - 100 trees
-python xgboost_interp/examples/sklearn_dataset_example.py
+python xgboost_interp/examples/california_housing_example.py
 
 # Iris Classification - 50 trees  
 python xgboost_interp/examples/iris_classification_example.py
+
+# Synthetic Imbalanced Classification - 3000 trees (for validation)
+python xgboost_interp/examples/synthetic_imbalanced_classification_example.py
 ```
 
-## 📊 What You'll Get
+## What You'll Get
 
 ### California Housing Example
 - **Dataset**: 20,640 samples, 8 features (median income, house age, etc.)
@@ -71,7 +74,16 @@ python xgboost_interp/examples/iris_classification_example.py
   - `iris_xgb/` (10+ visualization plots)
   - `iris_data/` (processed dataset)
 
-## 🎯 Generated Visualizations
+### Synthetic Imbalanced Classification Example
+- **Dataset**: 100,000 samples, 39 features with known ground-truth effects
+- **Model**: XGBoost Classifier (3000 trees, depth 6)
+- **Purpose**: Validate interpretability tools against known feature-target relationships
+- **Output**:
+  - `synthetic_imbalanced_classification_xgb.json` (trained model)
+  - `output/` (comprehensive analysis including early exit metrics)
+  - `SYNTHETIC_MODEL_README.md` (detailed feature documentation)
+
+## Generated Visualizations
 
 Both examples create comprehensive analysis including:
 
@@ -93,7 +105,7 @@ Both examples create comprehensive analysis including:
 - Gain/prediction statistics by tree and depth
 - Feature split impact analysis
 
-## 🔧 Using Your Own Models
+## Using Your Own Models
 
 After running the examples, you can analyze your own models:
 
@@ -112,24 +124,17 @@ model_analyzer.load_xgb_model()
 model_analyzer.plot_partial_dependence("your_feature")
 ```
 
-## 📋 Requirements
+## Requirements
 
 The examples automatically handle:
-- ✅ Data downloading (sklearn datasets)
-- ✅ Model training with sensible hyperparameters
-- ✅ JSON model saving
-- ✅ Comprehensive interpretability analysis
+- Data downloading (sklearn datasets)
+- Model training with sensible hyperparameters
+- JSON model saving
+- Comprehensive interpretability analysis
 
-Just install and run!
 
 ```bash
 pip install -e .
 python run_examples.py
 ```
 
-## 🎉 Expected Runtime
-
-- **Iris example**: ~30 seconds (small dataset)
-- **Housing example**: ~2-3 minutes (larger dataset)
-
-Both include complete model training + full interpretability analysis!
