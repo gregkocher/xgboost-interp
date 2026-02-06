@@ -14,10 +14,10 @@ def run_example(example_name):
     example_path = f"xgboost_interp/examples/{example_name}.py"
     
     if not os.path.exists(example_path):
-        print(f"❌ Example not found: {example_path}")
+        print(f"Example not found: {example_path}")
         return False
     
-    print(f"🚀 Running {example_name}...")
+    print(f"Running {example_name}...")
     print("=" * 60)
     
     try:
@@ -25,14 +25,14 @@ def run_example(example_name):
                               capture_output=False, text=True)
         
         if result.returncode == 0:
-            print(f"\n✅ {example_name} completed successfully!")
+            print(f"\n{example_name} completed successfully!")
             return True
         else:
-            print(f"\n❌ {example_name} failed with return code {result.returncode}")
+            print(f"\n{example_name} failed with return code {result.returncode}")
             return False
             
     except Exception as e:
-        print(f"❌ Error running {example_name}: {e}")
+        print(f"Error running {example_name}: {e}")
         return False
 
 
@@ -71,7 +71,7 @@ def main():
             
             # Check dependencies for examples 3, 4, and 5
             if choice == "3":
-                print("⚠️  Example 3 requires you to provide:")
+                print(" Example 3 requires you to provide:")
                 print("   1. Path to your XGBoost model JSON file")
                 print("   2. (Optional) Path to data directory with parquet files")
                 print("\n   Usage: python xgboost_interp/examples/user_model_complete_analysis.py MODEL.json [DATA_DIR/]")
@@ -89,7 +89,7 @@ def main():
                 continue
                 
             elif choice in ["4", "5"]:
-                print("⚠️  Note: Examples 4 and 5 require you to:")
+                print(" Note: Examples 4 and 5 require you to:")
                 print("   1. Update the model_path in the example file")
                 print("   2. Ensure your data is available")
                 proceed = input("   Do you want to continue? (y/n): ").strip().lower()
@@ -102,7 +102,7 @@ def main():
                 print(f"\n📁 Check the output directory for generated plots and files")
             
         else:
-            print("❌ Invalid choice. Please enter a number 1-5 or 'q'.")
+            print("Invalid choice. Please enter a number 1-5 or 'q'.")
 
 
 if __name__ == "__main__":

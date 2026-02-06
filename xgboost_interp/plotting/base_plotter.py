@@ -88,7 +88,7 @@ class BasePlotter:
             sorted_items = sorted_items[:top_n]
         
         if not sorted_items:
-            print(f"⚠️ No data to plot for {title}")
+            print(f"No data to plot for {title}")
             return
         
         features, values = zip(*sorted_items)
@@ -112,7 +112,7 @@ class BasePlotter:
         distributions = [data[f] for f in sorted_feats]
         
         if not any(distributions):
-            print(f"⚠️ No data to plot for {title}")
+            print(f"No data to plot for {title}")
             return
         
         fig, ax = self._setup_plot(figsize=(max(16, len(sorted_feats) * 0.25), 8))

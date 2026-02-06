@@ -28,6 +28,14 @@ A comprehensive toolkit for interpreting and analyzing XGBoost models. This pack
 - **Prediction Analysis**: Score evolution across tree ensembles
 - **Marginal Impact**: Feature-specific prediction changes
 
+### Model Diffing
+- **Structural Comparison**: Summary of tree counts, depths, feature sets, and feature changes between two models
+- **Cumulative Gain Comparison**: Overlay cumulative gain curves from two models
+- **Feature Importance Scatter**: Side-by-side importance comparison on log-log axes (gain, weight, cover)
+- **PDP Comparison**: Overlaid partial dependence / ICE curves for shared features
+- **Prediction Comparison**: Score scatter plots, difference histograms, and agreement matrices
+- **Score Q-Q Plot**: Quantile-quantile comparison of predicted score distributions
+
 ### Interactive Visualizations
 - **Tree Explorer**: Interactive tree structure visualization with Plotly, showing all split features and split thresholds
 
@@ -72,7 +80,8 @@ Example scripts are located in `xgboost_interp/examples/`:
 
 - `california_housing_example.py`: Complete example with California Housing dataset (regression)
 - `iris_classification_example.py`: Classification example with Iris dataset  
-- `user_model_complete_analysis.py`: **Run ALL analysis functions on your own model** 🌟
+- `user_model_complete_analysis.py`: **Run ALL analysis functions on your own model**
+- `model_diffing_example.py`: **Compare two XGBoost models** -- structural and behavioral diff
 - `basic_analysis.py`: Tree-level analysis without data (requires your model)
 - `advanced_analysis.py`: Full model analysis with data and interactions (requires your model)
 
@@ -82,6 +91,9 @@ Example scripts are located in `xgboost_interp/examples/`:
 # Run individual examples
 python3 xgboost_interp/examples/california_housing_example.py
 python3 xgboost_interp/examples/iris_classification_example.py
+
+# Run model diffing example (trains two models and compares them)
+python3 xgboost_interp/examples/model_diffing_example.py
 ```
 
 The examples are self-contained and include:
@@ -104,12 +116,12 @@ python3 xgboost_interp/examples/user_model_complete_analysis.py model.json data_
 ```
 
 This example demonstrates:
-- ✅ All 15 tree-level analysis functions
-- ✅ Partial dependence plots for ALL features
-- ✅ Marginal impact analysis for ALL features
-- ✅ Prediction evolution across trees
-- ✅ Interactive tree visualizations
-- ✅ Comprehensive summary report
+- All 15 tree-level analysis functions
+- Partial dependence plots for ALL features
+- Marginal impact analysis for ALL features
+- Prediction evolution across trees
+- Interactive tree visualizations
+- Comprehensive summary report
 
 
 ## API Reference
@@ -128,7 +140,7 @@ The main class for tree-level analysis that doesn't require data.
 - `plot_gain_stats_per_tree()`: Gain distribution across trees
 - `compute_tree_level_feature_cooccurrence()`: Compute features appearing in same tree
 - `compute_path_level_feature_cooccurrence()`: Compute features on same decision paths
-- `compute_sequential_feature_dependency()`: Compute parent→child feature dependencies
+- `compute_sequential_feature_dependency()`: Compute parent->child feature dependencies
 - `plot_tree_level_feature_cooccurrence()`: Plot tree-level co-occurrence heatmap
 - `plot_path_level_feature_cooccurrence()`: Plot path-level co-occurrence heatmap
 - `plot_sequential_feature_dependency()`: Plot sequential feature co-occurrence heatmap
@@ -144,6 +156,22 @@ Extended analysis requiring actual data examples.
 - `plot_ale()`: Accumulated Local Effects plots
 - `plot_scores_across_trees()`: Prediction evolution analysis
 - `plot_marginal_impact_univariate()`: Feature-specific impact analysis
+
+
+### ModelDiff
+
+Compare two XGBoost models structurally and behaviorally. Requires two `ModelAnalyzer` instances.
+
+**Key Methods:**
+- `print_summary()`: Side-by-side summary of tree counts, depths, and feature sets
+- `find_feature_changes()`: Identify features added, removed, or shared between models
+- `compare_cumulative_gain()`: Overlay cumulative gain curves from both models
+- `plot_importance_scatter(metric)`: Log-log scatter of feature importance (gain, weight, or cover) with y=x diagonal
+- `plot_all_importance_scatters()`: Generate importance scatter plots for all three metrics
+- `compare_pdp(analyzer_a, analyzer_b, feature_name, ...)`: Overlaid PDP/ICE curves for a shared feature
+- `compare_all_pdp(analyzer_a, analyzer_b, ...)`: PDP comparison for all shared features
+- `compare_predictions(analyzer_a, analyzer_b, y_true, ...)`: Comprehensive prediction comparison (scatter, histogram, agreement matrix, Q-Q plot)
+- `plot_score_qq(analyzer_a, analyzer_b, ...)`: Standalone Q-Q plot of predicted score distributions
 
 
 ## Visualization Gallery
@@ -208,7 +236,7 @@ Symmetric matrix showing how often pairs of features appear on the same root-to-
 *California Housing dataset - reveals tighter feature interactions along decision paths*
 
 #### Sequential Feature Co-occurrence
-Asymmetric matrix showing conditional probabilities: when a feature (row) splits, what's the probability that another feature (column) is the immediate next split? This reveals directional parent→child feature dependencies in the tree structure.
+Asymmetric matrix showing conditional probabilities: when a feature (row) splits, what's the probability that another feature (column) is the immediate next split? This reveals directional parent-to-child feature dependencies in the tree structure.
 
 ![Sequential Feature Co-occurrence](docs/assets/images/feature_cooccurrence_sequential.png)
 
@@ -281,6 +309,46 @@ Scatter plots comparing predictions at different tree stopping points (early exi
 | 3000 | 0.00% | 0.00 | 1.0000 | 1.0000 |
 
 *Metrics comparing early exit predictions to final model (3000 trees). Lower inversion rate and MSE, higher Kendall-Tau and Spearman indicate better agreement with final predictions.*
+
+### Model Diffing
+
+The model diffing module compares two XGBoost models trained on the same problem -- for example, models trained on different time periods, with different hyperparameters, or with different feature subsets. The example below uses a synthetic binary classification dataset where Model A is trained on the full feature set and Model B is trained with modified features (some dropped, some added, different noise levels).
+
+#### Cumulative Gain Comparison
+Overlay of cumulative gain (loss reduction) curves from both models. Reveals differences in learning dynamics -- how quickly each model reduces loss and where one model gains an advantage over the other.
+
+![Cumulative Gain Comparison](docs/assets/images/diff_cumulative_gain_comparison.png)
+*Synthetic dataset - cumulative gain curves for Model A (blue) vs Model B (orange), showing how each model accumulates predictive power across trees*
+
+#### Feature Importance Scatter (Gain)
+Log-log scatter plot comparing feature importance (by gain) between two models. Each point is a feature; the y=x diagonal indicates equal importance. Points far from the diagonal highlight features whose role changed significantly between models.
+
+![Feature Importance Scatter](docs/assets/images/diff_importance_scatter_gain.png)
+*Synthetic dataset - features near the diagonal have similar importance in both models, while outliers indicate features that became more or less important*
+
+#### PDP Comparison
+Overlaid Partial Dependence Plots with ICE curves from both models for a shared continuous feature. Shows how each model's average prediction and individual sample trajectories differ across the feature's range.
+
+![PDP Comparison](docs/assets/images/diff_pdp_comparison_norm_iid_pos_strong.png)
+*Synthetic dataset - PDP comparison for a continuous feature, with Model A curves (blue) and Model B curves (red) overlaid. Divergence between the two PDP lines highlights where the models disagree on the feature's effect*
+
+#### Prediction Agreement Matrix
+Confusion-matrix-style heatmap comparing binary classification outcomes between the two models. Shows the proportion of samples where both models agree (diagonal) vs. disagree (off-diagonal).
+
+![Prediction Agreement Matrix](docs/assets/images/diff_prediction_agreement_matrix.png)
+*Synthetic dataset - agreement matrix showing prediction overlap between Model A and Model B. High diagonal values indicate strong agreement; off-diagonal values reveal where the models diverge*
+
+#### Prediction Scatter
+Scatter plot of Model A scores (x-axis) vs. Model B scores (y-axis) for all test samples, with points colored by density. The y=x diagonal represents perfect agreement. Systematic deviations reveal score calibration differences or subpopulations where models disagree.
+
+![Prediction Scatter](docs/assets/images/diff_prediction_scatter.png)
+*Synthetic dataset - each point is a test sample. Tight clustering along the diagonal indicates overall agreement, while spread or curvature highlights systematic differences*
+
+#### Score Q-Q Plot
+Quantile-quantile plot comparing the full predicted score distributions of both models. Points are colored by percentile (blue = low, red = high). If both models produce identical score distributions, all points lie on the y=x diagonal. Deviations reveal distributional differences -- for example, one model producing more extreme scores in the tails.
+
+![Score Q-Q Plot](docs/assets/images/diff_score_qq_plot.png)
+*Synthetic dataset - Q-Q plot of Model A vs. Model B score quantiles. Points colored by percentile (0-100) using a coolwarm colormap. Departures from the diagonal indicate where the score distributions differ*
 
 
 ## Testing

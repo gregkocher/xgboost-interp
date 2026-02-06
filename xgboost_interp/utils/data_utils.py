@@ -46,7 +46,7 @@ class DataLoader:
                 for parquet_file in files
             )
         
-        print(f"✅ Loaded {len(df)} rows")
+        print(f"[OK] Loaded {len(df)} rows")
         if cols_to_load:
             print(f"   Columns: {cols_to_load}")
         

@@ -104,7 +104,7 @@ def train_xgboost_model(df, feature_names, target, model_path="examples/californ
     # Save model as JSON
     os.makedirs(os.path.dirname(model_path), exist_ok=True)
     model.save_model(model_path)
-    print(f"\n✅ Model saved as: {model_path}")
+    print(f"\nModel saved as: {model_path}")
     
     return model, X_train, X_test, y_train, y_test
 
@@ -183,9 +183,9 @@ def analyze_with_interpretability_package(model_path, data_df, feature_names, y_
                 feature_name=feature,
                 n_curves=1000
             )
-            print(f"✅ Generated PDP for {feature}")
+            print(f"Generated PDP for {feature}")
         except Exception as e:
-            print(f"⚠️ Could not generate PDP for {feature}: {e}")
+            print(f"Could not generate PDP for {feature}: {e}")
     
     # Generate marginal impact analysis for key features
     print("\nGenerating marginal impact analysis...")
@@ -193,24 +193,24 @@ def analyze_with_interpretability_package(model_path, data_df, feature_names, y_
     for feature in key_features:
         try:
             model_analyzer.plot_marginal_impact_univariate(feature, scale="linear")
-            print(f"✅ Generated marginal impact for {feature}")
+            print(f"Generated marginal impact for {feature}")
         except Exception as e:
-            print(f"⚠️ Could not generate marginal impact for {feature}: {e}")
+            print(f"Could not generate marginal impact for {feature}: {e}")
     
     # Prediction evolution across trees
     print("\nGenerating prediction evolution plot...")
     try:
         model_analyzer.plot_scores_across_trees(n_records=1000)
-        print("✅ Generated scores across trees plot")
+        print("Generated scores across trees plot")
     except Exception as e:
-        print(f"⚠️ Could not generate scores across trees: {e}")
+        print(f"Could not generate scores across trees: {e}")
     
     # Early exit performance analysis
     print("\nGenerating early exit performance analysis...")
     try:
         model_analyzer.analyze_early_exit_performance(n_records=5000, n_detailed_curves=1000)
     except Exception as e:
-        print(f"⚠️ Could not generate early exit analysis: {e}")
+        print(f"Could not generate early exit analysis: {e}")
     
     # Interactive tree visualization (first few trees)
     print("\nGenerating interactive tree visualization...")
@@ -221,11 +221,11 @@ def analyze_with_interpretability_package(model_path, data_df, feature_names, y_
             tree_analyzer.trees, tree_analyzer.feature_names, 
             top_k=3, combined=False
         )
-        print("✅ Generated interactive tree plots")
+        print("Generated interactive tree plots")
     except ImportError:
-        print("⚠️ Plotly not available for interactive plots")
+        print("Plotly not available for interactive plots")
     except Exception as e:
-        print(f"⚠️ Could not generate interactive plots: {e}")
+        print(f"Could not generate interactive plots: {e}")
     
     # ALE Plots
     print("\n[BONUS] Generating ALE plots...")
@@ -239,11 +239,11 @@ def analyze_with_interpretability_package(model_path, data_df, feature_names, y_
                 include_CI=True,
                 n_curves=min(10000, len(model_analyzer.df))
             )
-        print(f"  ✅ Generated {len(feature_names)} ALE plots in ALE_analysis/")
+        print(f"  Generated {len(feature_names)} ALE plots in ALE_analysis/")
     except ImportError:
-        print("  ⚠️ PyALE not installed - skipping ALE plots")
+        print("  PyALE not installed - skipping ALE plots")
     except Exception as e:
-        print(f"  ⚠️ Failed to generate ALE plots: {e}")
+        print(f"  Failed to generate ALE plots: {e}")
     
     # SHAP Analysis
     print("\n[BONUS] Generating SHAP analysis...")
@@ -286,11 +286,11 @@ def analyze_with_interpretability_package(model_path, data_df, feature_names, y_
             plt.savefig(os.path.join(shap_dir, f'waterfall_sample_{idx}.png'), dpi=300, bbox_inches='tight')
             plt.close()
         
-        print(f"  ✅ Generated SHAP analysis in SHAP_analysis/")
+        print(f"  Generated SHAP analysis in SHAP_analysis/")
     except ImportError:
-        print("  ⚠️ shap not installed - skipping SHAP analysis")
+        print("  shap not installed - skipping SHAP analysis")
     except Exception as e:
-        print(f"  ⚠️ Failed to generate SHAP analysis: {e}")
+        print(f"  Failed to generate SHAP analysis: {e}")
     
     print(f"\n{'='*60}")
     print("ANALYSIS COMPLETE!")
@@ -326,14 +326,14 @@ def main():
     # Analyze with our interpretability package
     analyze_with_interpretability_package(model_path, df, feature_names, y_test, y_pred)
     
-    print("\n🎉 Example completed successfully!")
+    print("\nExample completed successfully!")
     print("\nWhat was demonstrated:")
-    print("1. ✅ Loaded California Housing dataset from sklearn")
-    print("2. ✅ Trained XGBoost regression model with 100 trees")
-    print("3. ✅ Saved model as JSON for interpretability analysis")
-    print("4. ✅ Used TreeAnalyzer for structure-based analysis")
-    print("5. ✅ Used ModelAnalyzer for data-dependent analysis")
-    print("6. ✅ Generated comprehensive visualizations")
+    print("1. Loaded California Housing dataset from sklearn")
+    print("2. Trained XGBoost regression model with 100 trees")
+    print("3. Saved model as JSON for interpretability analysis")
+    print("4. Used TreeAnalyzer for structure-based analysis")
+    print("5. Used ModelAnalyzer for data-dependent analysis")
+    print("6. Generated comprehensive visualizations")
     
     print(f"\nFiles created:")
     print(f"  - {model_path} (XGBoost model)")

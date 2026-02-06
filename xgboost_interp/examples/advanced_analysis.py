@@ -33,7 +33,7 @@ def comprehensive_analysis_example():
         model_analyzer.load_xgb_model()
         data_available = True
     except Exception as e:
-        print(f"⚠️ Could not load data: {e}")
+        print(f"Could not load data: {e}")
         print("Proceeding with tree-only analysis...")
         data_available = False
     
@@ -85,7 +85,7 @@ def comprehensive_analysis_example():
             trees, tree_analyzer.feature_names, top_k=3, combined=False
         )
     except ImportError:
-        print("⚠️ Plotly not available for interactive plots")
+        print("Plotly not available for interactive plots")
     
     # Data-dependent analysis (if data is available)
     if data_available:
@@ -122,9 +122,9 @@ def comprehensive_analysis_example():
                         feature_name=feature, 
                         n_curves=1000
                     )
-                    print(f"✅ Generated PDP for {feature}")
+                    print(f"Generated PDP for {feature}")
                 except Exception as e:
-                    print(f"⚠️ Could not generate PDP for {feature}: {e}")
+                    print(f"Could not generate PDP for {feature}: {e}")
         
         # Marginal impact analysis for key features
         print("Generating marginal impact analysis...")
@@ -139,9 +139,9 @@ def comprehensive_analysis_example():
             if feature in tree_analyzer.feature_names:
                 try:
                     model_analyzer.plot_marginal_impact_univariate(feature, scale="linear")
-                    print(f"✅ Generated marginal impact for {feature}")
+                    print(f"Generated marginal impact for {feature}")
                 except Exception as e:
-                    print(f"⚠️ Could not generate marginal impact for {feature}: {e}")
+                    print(f"Could not generate marginal impact for {feature}: {e}")
         
         # ALE plots (if pyALE is available)
         try:
@@ -154,11 +154,11 @@ def comprehensive_analysis_example():
                         include_CI=True,
                         n_curves=5000
                     )
-                    print(f"✅ Generated ALE plot for {feature}")
+                    print(f"Generated ALE plot for {feature}")
         except ImportError:
-            print("⚠️ pyALE not available for ALE plots")
+            print("pyALE not available for ALE plots")
         except Exception as e:
-            print(f"⚠️ Could not generate ALE plots: {e}")
+            print(f"Could not generate ALE plots: {e}")
     
     print("\n" + "="*50)
     print("ANALYSIS COMPLETE!")

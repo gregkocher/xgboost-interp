@@ -140,7 +140,7 @@ class FeaturePlotter(BasePlotter):
             traverse(0, 0)
         
         if not feature_depths:
-            print("⚠️ No split depth data found")
+            print("No split depth data found")
             return
         
         # Sort by mean depth
@@ -201,7 +201,7 @@ class FeaturePlotter(BasePlotter):
                 feature_deltas[feature_name].append(delta)
         
         if not feature_deltas:
-            print("⚠️ No split impact data found")
+            print("No split impact data found")
             return
         
         self._plot_boxplot(

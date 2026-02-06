@@ -99,6 +99,19 @@ def test_synthetic_imbalanced_classification_example():
         verify_output_files(output_dir, min_png_count=1)
 
 
+def test_model_diffing_example():
+    """Test that the Model Diffing example runs successfully."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Run the example
+        exit_code = run_example_script("model_diffing_example.py", tmpdir)
+        
+        assert exit_code == 0, "Model Diffing example failed to run"
+        
+        # Verify output PNG files exist and are fresh
+        output_dir = os.path.join(tmpdir, "examples", "model_diff", "output")
+        verify_output_files(output_dir, min_png_count=4)  # cumulative_gain + 3 importance scatters
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
 
