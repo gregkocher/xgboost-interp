@@ -436,12 +436,3 @@ If you use this package in your research, please cite:
   url={https://github.com/gregkocher/xgboost-interp}
 }
 ```
-
-## Changelog
-
-### v0.1.0 (2025-10-05)
-- Initial release
-- Tree-level analysis functionality
-- Model analysis with data support
-- Interactive visualizations
-- Comprehensive plotting utilities
