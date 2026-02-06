@@ -99,7 +99,7 @@ def main():
             success = run_example(example_name)
             
             if success:
-                print(f"\n📁 Check the output directory for generated plots and files")
+                print(f"\nCheck the output directory for generated plots and files")
             
         else:
             print("Invalid choice. Please enter a number 1-5 or 'q'.")

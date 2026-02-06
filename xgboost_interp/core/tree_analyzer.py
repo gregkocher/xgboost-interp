@@ -378,7 +378,7 @@ class TreeAnalyzer:
         # (count how many non-leaf children each parent feature has)
         parent_children_count = np.zeros(num_features, dtype=int)
         
-        # Numerator: count of parent→child pairs
+        # Numerator: count of parent-to-child pairs
         parent_child_counts = np.zeros((num_features, num_features), dtype=int)
         
         for tree in self.trees:

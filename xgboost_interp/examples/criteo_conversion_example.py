@@ -267,7 +267,7 @@ def run_interpretability_analysis(model_path):
     tree_analyzer.print_model_summary()
     
     # Tree structure analysis
-    print("\n🌳 Generating tree structure analysis...")
+    print("\nGenerating tree structure analysis...")
     tree_analyzer.plot_feature_importance_combined(top_n=30)
     tree_analyzer.plot_feature_importance_distributions(log_scale=True, top_n=20)
     tree_analyzer.plot_tree_depth_histogram()
@@ -343,7 +343,7 @@ def main():
     print("\n" + "=" * 70)
     print("ANALYSIS COMPLETE!")
     print("=" * 70)
-    print(f"\n📁 Output directory: examples/criteo/output/")
+    print(f"\nOutput directory: examples/criteo/output/")
     print(f"Model file: {model_path}")
     print(f"Data file: examples/criteo/criteo_data/criteo_test_sample.parquet")
     

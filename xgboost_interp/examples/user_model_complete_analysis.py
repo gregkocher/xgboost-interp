@@ -488,7 +488,7 @@ def generate_summary_report(tree_analyzer, data_analysis_done):
         
         total_plots = len(main_files) + pdp_count + marginal_count + ale_count
         
-        print(f"\n📁 Output Directory: {output_dir}")
+        print(f"\nOutput Directory: {output_dir}")
         print(f"Total Plots Generated: {total_plots}")
         
         # Categorize main directory plots
@@ -497,7 +497,7 @@ def generate_summary_report(tree_analyzer, data_analysis_done):
         other_plots = [f for f in main_files if f not in tree_plots + feature_plots]
         
         print(f"\nPlot Categories:")
-        print(f"  🌳 Tree Structure Plots: {len(tree_plots)} (in main directory)")
+        print(f"  Tree Structure Plots: {len(tree_plots)} (in main directory)")
         print(f"  Feature Analysis Plots: {len(feature_plots)} (in main directory)")
         
         # Always show marginal impact (Part 1 - no data needed)
@@ -512,7 +512,7 @@ def generate_summary_report(tree_analyzer, data_analysis_done):
             if other_plots:
                 print(f"  Other Plots: {len(other_plots)} (in main directory)")
         
-        print(f"\n📂 Directory Structure:")
+        print(f"\nDirectory Structure:")
         print(f"  {output_dir}/")
         print(f"    ├── {len(main_files)} plots (tree structure, feature importance, etc.)")
         if marginal_count > 0:

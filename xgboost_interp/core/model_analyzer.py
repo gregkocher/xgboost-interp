@@ -117,7 +117,7 @@ class ModelAnalyzer:
         
         if not self.is_regression:
             print(f"[INFO] Correct base_score from JSON: {self.correct_base_score:.6f} "
-                  f"→ {expit(self.correct_base_score):.6f} prob ({expit(self.correct_base_score)*100:.4f}%)")
+                  f"= {expit(self.correct_base_score):.6f} prob ({expit(self.correct_base_score)*100:.4f}%)")
         
         # Detect number of classes
         self.num_classes = self._detect_num_classes()
@@ -965,7 +965,7 @@ class ModelAnalyzer:
         print(f"Found {len(thresholds)} splits for feature '{feature_name}':")
         for split_global_idx, tree_idx, depth, threshold, delta in split_info[:5]:
             print(f"  Split {split_global_idx}, Tree {tree_idx}, Depth {depth}: "
-                  f"{feature_name} < {threshold:.4f} → Δ = {delta:.4f}")
+                  f"{feature_name} < {threshold:.4f} | delta = {delta:.4f}")
         if len(split_info) > 5:
             print(f"  ... and {len(split_info) - 5} more")
         

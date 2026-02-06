@@ -82,7 +82,8 @@ Example scripts are located in `xgboost_interp/examples/`:
 - `iris_classification_example.py`: Classification example with Iris dataset
 - `synthetic_imbalanced_classification_example.py`: Synthetic data with known ground-truth relationships for validation
 - `user_model_complete_analysis.py`: **Run ALL analysis functions on your own model**
-- `model_diffing_example.py`: **Compare two XGBoost models** -- structural and behavioral diff
+- `user_model_diff.py`: **Compare two of your own models** -- full ModelDiff CLI
+- `model_diffing_example.py`: **Compare two XGBoost models** -- structural and behavioral diff (synthetic demo)
 - `basic_analysis.py`: Tree-level analysis without data (requires your model)
 - `advanced_analysis.py`: Full model analysis with data and interactions (requires your model)
 
@@ -142,6 +143,27 @@ This example demonstrates:
 - Prediction evolution across trees
 - Interactive tree visualizations
 - Comprehensive summary report
+
+### Comparing Two of Your Own Models
+
+The `user_model_diff.py` script runs the full `ModelDiff` comparison between two XGBoost JSON models:
+
+```bash
+# Tree-level comparison only (no data needed)
+python3 xgboost_interp/examples/user_model_diff.py model_a.json model_b.json
+
+# Full comparison with data (PDP, predictions, Q-Q plot)
+python3 xgboost_interp/examples/user_model_diff.py model_a.json model_b.json data_dir/
+
+# Custom labels and target column for agreement matrix
+python3 xgboost_interp/examples/user_model_diff.py model_a.json model_b.json data_dir/ \
+    --label-a "Baseline v1" --label-b "Candidate v2" --target-column target
+
+# Override output directory
+python3 xgboost_interp/examples/user_model_diff.py model_a.json model_b.json --output-dir /tmp/diff/
+```
+
+Output is saved to `model_diff_<modelA>_vs_<modelB>/` next to model A (or to `--output-dir`).
 
 
 ## API Reference

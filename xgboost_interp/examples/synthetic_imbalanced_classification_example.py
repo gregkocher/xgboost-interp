@@ -373,7 +373,7 @@ def plot_feature_pdf(
     n_total = len(feature_values)
     bin_density = bin_counts / (n_total * bin_width)
     
-    # Create colormap: light gray (0) → bright red (1)
+    # Create colormap: light gray (0) to bright red (1)
     colors_light_gray = np.array([0.85, 0.85, 0.85, 1.0])  # Light gray
     colors_bright_red = np.array([1.0, 0.0, 0.0, 1.0])     # Bright red
     
@@ -485,7 +485,7 @@ def plot_all_feature_pdfs(
         if (i + 1) % 10 == 0 or (i + 1) == len(feature_names):
             print(f"  [{i+1}/{len(feature_names)}] Feature PDF plots generated")
     
-    print(f"  ✅ All feature PDF plots saved to: {save_dir}")
+    print(f"  All feature PDF plots saved to: {save_dir}")
 
 
 # =============================================================================
