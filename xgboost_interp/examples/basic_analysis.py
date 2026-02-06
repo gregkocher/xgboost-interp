@@ -29,7 +29,7 @@ def basic_tree_analysis_example():
     tree_analyzer.plot_cumulative_gain()
     tree_analyzer.plot_cumulative_prediction_shift()
     
-    print("✅ Basic analysis complete! Check the output directory for plots.")
+    print("Basic analysis complete! Check the output directory for plots.")
 
 
 def model_with_data_example():
@@ -68,9 +68,9 @@ def model_with_data_example():
                 feature_name=feature, 
                 n_curves=1000
             )
-            print(f"✅ Generated PDP for {feature}")
+            print(f"Generated PDP for {feature}")
         except Exception as e:
-            print(f"⚠️ Could not generate PDP for {feature}: {e}")
+            print(f"Could not generate PDP for {feature}: {e}")
     
     # Plot prediction evolution across trees
     print("Analyzing prediction evolution...")
@@ -79,7 +79,7 @@ def model_with_data_example():
         n_records=2000
     )
     
-    print("✅ Model analysis with data complete!")
+    print("Model analysis with data complete!")
 
 
 if __name__ == "__main__":

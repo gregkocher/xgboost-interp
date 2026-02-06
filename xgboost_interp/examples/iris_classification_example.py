@@ -88,7 +88,7 @@ def train_iris_xgboost_model(df, feature_names, target, model_path="examples/iri
     # Save model as JSON
     os.makedirs(os.path.dirname(model_path), exist_ok=True)
     model.save_model(model_path)
-    print(f"\n✅ Model saved as: {model_path}")
+    print(f"\nModel saved as: {model_path}")
     
     return model, X_train, X_test, y_train, y_test
 
@@ -124,11 +124,11 @@ def analyze_iris_model(model_path, data_df, feature_names, y_test=None, y_pred_p
             tree_analyzer.trees, tree_analyzer.feature_names, 
             top_k=5, combined=False
         )
-        print("✅ Generated interactive tree plots (opened in browser)")
+        print("Generated interactive tree plots (opened in browser)")
     except ImportError:
-        print("⚠️ Plotly not available for interactive plots")
+        print("Plotly not available for interactive plots")
     except Exception as e:
-        print(f"⚠️ Could not generate interactive plots: {e}")
+        print(f"Could not generate interactive plots: {e}")
     
     # Save data for analysis
     data_dir = "examples/iris/iris_data"
@@ -170,33 +170,33 @@ def analyze_iris_model(model_path, data_df, feature_names, y_test=None, y_pred_p
                     feature_name=feature,
                     n_curves=150  # All samples
                 )
-                print(f"✅ Generated PDP for {feature}")
+                print(f"Generated PDP for {feature}")
             except Exception as e:
-                print(f"⚠️ Could not generate PDP for {feature}: {e}")
+                print(f"Could not generate PDP for {feature}: {e}")
         
         # Marginal impact for all features (small dataset)
         print(f"\nGenerating marginal impact analysis for class {target_class} ({class_names[target_class]})...")
         for feature in feature_names:
             try:
                 model_analyzer.plot_marginal_impact_univariate(feature, scale="linear")
-                print(f"✅ Generated marginal impact for {feature}")
+                print(f"Generated marginal impact for {feature}")
             except Exception as e:
-                print(f"⚠️ Could not generate marginal impact for {feature}: {e}")
+                print(f"Could not generate marginal impact for {feature}: {e}")
         
         # Prediction evolution across trees
         print(f"\nGenerating prediction evolution plot for class {target_class} ({class_names[target_class]})...")
         try:
             model_analyzer.plot_scores_across_trees(n_records=1000)
-            print(f"✅ Generated scores across trees plot")
+            print(f"Generated scores across trees plot")
         except Exception as e:
-            print(f"⚠️ Could not generate scores across trees: {e}")
+            print(f"Could not generate scores across trees: {e}")
         
         # Early exit performance analysis
         print(f"\nGenerating early exit performance analysis for class {target_class} ({class_names[target_class]})...")
         try:
             model_analyzer.analyze_early_exit_performance(n_records=5000, n_detailed_curves=1000)
         except Exception as e:
-            print(f"⚠️ Could not generate early exit analysis: {e}")
+            print(f"Could not generate early exit analysis: {e}")
         
         # ALE Plots
         print(f"\n[BONUS] Generating ALE plots for class {target_class} ({class_names[target_class]})...")
@@ -210,11 +210,11 @@ def analyze_iris_model(model_path, data_df, feature_names, y_test=None, y_pred_p
                     include_CI=True,
                     n_curves=min(10000, len(model_analyzer.df))
                 )
-            print(f"  ✅ Generated {len(feature_names)} ALE plots in ALE_analysis/")
+            print(f"  Generated {len(feature_names)} ALE plots in ALE_analysis/")
         except ImportError:
-            print("  ⚠️ PyALE not installed - skipping ALE plots")
+            print("  PyALE not installed - skipping ALE plots")
         except Exception as e:
-            print(f"  ⚠️ Failed to generate ALE plots: {e}")
+            print(f"  Failed to generate ALE plots: {e}")
         
         # SHAP Analysis
         print(f"\nGenerating SHAP analysis for class {target_class} ({class_names[target_class]})...")
@@ -265,11 +265,11 @@ def analyze_iris_model(model_path, data_df, feature_names, y_test=None, y_pred_p
                 plt.savefig(os.path.join(shap_dir, f'waterfall_sample_{idx}.png'), dpi=300, bbox_inches='tight')
                 plt.close()
             
-            print(f"  ✅ Generated SHAP analysis in SHAP_analysis_class_{target_class}/")
+            print(f"  Generated SHAP analysis in SHAP_analysis_class_{target_class}/")
         except ImportError:
-            print("  ⚠️ shap not installed - skipping SHAP analysis")
+            print("  shap not installed - skipping SHAP analysis")
         except Exception as e:
-            print(f"  ⚠️ Failed to generate SHAP analysis: {e}")
+            print(f"  Failed to generate SHAP analysis: {e}")
     
     print(f"\nAnalysis complete! Plots saved to: {tree_analyzer.plotter.save_dir}")
 

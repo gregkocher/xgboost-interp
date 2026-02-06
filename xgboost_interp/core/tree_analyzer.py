@@ -98,7 +98,7 @@ class TreeAnalyzer:
             combined = combined[:top_n]
         
         if not combined:
-            print("⚠️ No feature importance data found")
+            print("No feature importance data found")
             return
         
         # Create the plot
@@ -196,7 +196,7 @@ class TreeAnalyzer:
             depths.append(depth)
         
         if not depths:
-            print("⚠️ No tree depth data found")
+            print("No tree depth data found")
             return
         
         fig, ax = plt.subplots(figsize=(8, 5))
@@ -225,7 +225,7 @@ class TreeAnalyzer:
             gains.append(total_gain)
         
         if not gains:
-            print("⚠️ No gain data found")
+            print("No gain data found")
             return
         
         cumulative_gain = np.cumsum(gains)
@@ -256,7 +256,7 @@ class TreeAnalyzer:
             mean_abs_magnitudes.append(mean_abs_magnitude)
         
         if not mean_abs_magnitudes:
-            print("⚠️ No leaf magnitude data found")
+            print("No leaf magnitude data found")
             return
         
         cumulative_magnitude = np.cumsum(mean_abs_magnitudes)
@@ -540,7 +540,7 @@ class TreeAnalyzer:
                 avg_covers.append(np.mean(cover_distributions[feat]))
         
         if not features:
-            print("⚠️ No feature data found")
+            print("No feature data found")
             return
         
         # Sort by gain and take top_n
@@ -594,3 +594,6 @@ class TreeAnalyzer:
         
         plt.tight_layout()
         self.plotter._save_plot('feature_importance_scatter.png')
+    
+    def get_feature_importance(self) -> tuple:
+        return self.plotter._compute_feature_stats(self.trees, self.feature_names)

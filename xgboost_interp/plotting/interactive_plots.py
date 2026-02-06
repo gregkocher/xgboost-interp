@@ -26,7 +26,7 @@ class InteractivePlotter(BasePlotter):
             import plotly.graph_objects as go
             import networkx as nx
         except ImportError:
-            print("⚠️ Plotly and NetworkX are required for interactive plots")
+            print("Plotly and NetworkX are required for interactive plots")
             return
         
         trees = trees[:top_k]

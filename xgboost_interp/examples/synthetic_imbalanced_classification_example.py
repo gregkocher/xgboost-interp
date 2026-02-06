@@ -545,7 +545,7 @@ def train_xgboost_model(
     # Save model
     os.makedirs(os.path.dirname(model_path), exist_ok=True)
     model.save_model(model_path)
-    print(f"\n✅ Model saved: {model_path}")
+    print(f"\nModel saved: {model_path}")
     
     return model, X_train, X_test, y_train, y_test
 
@@ -581,13 +581,13 @@ def run_full_analysis(
     tree_analyzer.plot_feature_importance_combined(top_n=20)
     tree_analyzer.plot_feature_importance_distributions(log_scale=False, top_n=20)
     tree_analyzer.plot_feature_importance_scatter(top_n=20)
-    print("  ✅ Feature importance plots saved")
+    print("  Feature importance plots saved")
     
     # Tree structure plots
     print("Generating tree structure plots...")
     tree_analyzer.plot_tree_depth_histogram()
     tree_analyzer.plot_cumulative_gain()
-    print("  ✅ Tree structure plots saved")
+    print("  Tree structure plots saved")
     
     # Interactive tree visualization
     print("Generating interactive tree visualizations...")
@@ -598,9 +598,9 @@ def run_full_analysis(
             tree_analyzer.trees, tree_analyzer.feature_names,
             top_k=5, combined=False
         )
-        print("  ✅ Interactive tree plots generated")
+        print("  Interactive tree plots generated")
     except Exception as e:
-        print(f"  ⚠️ Could not generate interactive plots: {e}")
+        print(f"  Could not generate interactive plots: {e}")
     
     # -------------------------------------------------------------------------
     # Data-dependent Analysis
@@ -654,33 +654,33 @@ def run_full_analysis(
                 feature_name=feature,
                 n_curves=200
             )
-            print(f"  [{i+1}/{len(important_features)}] ✅ {feature}")
+            print(f"  [{i+1}/{len(important_features)}] {feature}")
         except Exception as e:
-            print(f"  [{i+1}/{len(important_features)}] ⚠️ {feature}: {e}")
+            print(f"  [{i+1}/{len(important_features)}] {feature}: {e}")
     
     # Marginal Impact Analysis
     print("\nGenerating Marginal Impact Analysis...")
     for i, feature in enumerate(important_features):
         try:
             model_analyzer.plot_marginal_impact_univariate(feature, scale="linear")
-            print(f"  [{i+1}/{len(important_features)}] ✅ {feature}")
+            print(f"  [{i+1}/{len(important_features)}] {feature}")
         except Exception as e:
-            print(f"  [{i+1}/{len(important_features)}] ⚠️ {feature}: {e}")
+            print(f"  [{i+1}/{len(important_features)}] {feature}: {e}")
     
     # Prediction Evolution
     print("\nGenerating prediction evolution plot...")
     try:
         model_analyzer.plot_scores_across_trees(n_records=1000)
-        print("  ✅ Scores across trees plot saved")
+        print("  Scores across trees plot saved")
     except Exception as e:
-        print(f"  ⚠️ Could not generate scores across trees: {e}")
+        print(f"  Could not generate scores across trees: {e}")
     
     # Early exit performance analysis
     print("\nGenerating early exit performance analysis...")
     try:
         model_analyzer.analyze_early_exit_performance(n_records=5000, n_detailed_curves=1000)
     except Exception as e:
-        print(f"  ⚠️ Could not generate early exit analysis: {e}")
+        print(f"  Could not generate early exit analysis: {e}")
     
     # ALE Plots
     print("\nGenerating ALE Plots...")
@@ -694,11 +694,11 @@ def run_full_analysis(
                 include_CI=True,
                 n_curves=min(5000, len(model_analyzer.df))
             )
-        print("  ✅ ALE plots saved")
+        print("  ALE plots saved")
     except ImportError:
-        print("  ⚠️ PyALE not installed - skipping ALE plots")
+        print("  PyALE not installed - skipping ALE plots")
     except Exception as e:
-        print(f"  ⚠️ Failed to generate ALE plots: {e}")
+        print(f"  Failed to generate ALE plots: {e}")
     
     # SHAP Analysis
     print("\nGenerating SHAP Analysis...")
@@ -745,13 +745,13 @@ def run_full_analysis(
             plt.savefig(os.path.join(shap_dir, f'waterfall_sample_{idx}.png'), dpi=300, bbox_inches='tight')
             plt.close()
         
-        print("  ✅ SHAP analysis saved")
+        print("  SHAP analysis saved")
     except ImportError:
-        print("  ⚠️ shap not installed - skipping SHAP analysis")
+        print("  shap not installed - skipping SHAP analysis")
     except Exception as e:
-        print(f"  ⚠️ Failed to generate SHAP analysis: {e}")
+        print(f"  Failed to generate SHAP analysis: {e}")
     
-    print(f"\n✅ Analysis complete! All plots saved to: {output_dir}")
+    print(f"\nAnalysis complete! All plots saved to: {output_dir}")
 
 
 # =============================================================================
@@ -794,7 +794,7 @@ def main():
     plot_all_feature_pdfs(df, feature_names)
     
     print("\n" + "="*65)
-    print("🎉 Synthetic Imbalanced Classification Example Complete!")
+    print("Synthetic Imbalanced Classification Example Complete!")
     print("="*65)
     print("\nKey insights:")
     print("  1. Features with strong effects should rank highest in importance")

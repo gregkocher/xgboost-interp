@@ -116,7 +116,7 @@ class ModelAnalyzer:
         self._base_score_computed = False
         
         if not self.is_regression:
-            print(f"📊 Correct base_score from JSON: {self.correct_base_score:.6f} "
+            print(f"[INFO] Correct base_score from JSON: {self.correct_base_score:.6f} "
                   f"→ {expit(self.correct_base_score):.6f} prob ({expit(self.correct_base_score)*100:.4f}%)")
         
         # Detect number of classes
@@ -124,9 +124,9 @@ class ModelAnalyzer:
         
         # Print summary
         if self.num_classes > 2:
-            print(f"✅ Loaded multi-class model: {self.num_classes} classes (analyzing class {self.target_class})")
+            print(f"[OK] Loaded multi-class model: {self.num_classes} classes (analyzing class {self.target_class})")
         else:
-            print(f"✅ Loaded XGBoost model from {os.path.basename(json_path)}")
+            print(f"[OK] Loaded XGBoost model from {os.path.basename(json_path)}")
     
     def _detect_num_classes(self) -> int:
         """Detect number of classes for classification models."""
@@ -162,11 +162,11 @@ class ModelAnalyzer:
             self.base_score_adjustment = self.correct_base_score - loaded_base_score
             self._base_score_computed = True
             
-            print(f"⚙️  Base_score adjustment: {self.base_score_adjustment:.6f} logit units "
+            print(f"[INFO]  Base_score adjustment: {self.base_score_adjustment:.6f} logit units "
                   f"(loaded: {loaded_base_score:.4f}, correct: {self.correct_base_score:.4f})")
             
         except Exception as e:
-            print(f"⚠️  Warning: Could not compute base_score adjustment: {e}")
+            print(f" Warning: Could not compute base_score adjustment: {e}")
             self.base_score_adjustment = 0.0
             self._base_score_computed = True
     
@@ -646,7 +646,7 @@ class ModelAnalyzer:
         filepath = os.path.join(self.tree_analyzer.plotter.save_dir, 'scores_across_trees.png')
         plt.savefig(filepath, dpi=300, bbox_inches='tight')
         plt.close()
-        print(f"✅ Generated: scores_across_trees.png")
+        print(f"[OK] Generated: scores_across_trees.png")
     
     def _compute_inversion_rate(self, scores_early: np.ndarray, scores_final: np.ndarray) -> float:
         """
@@ -761,7 +761,7 @@ class ModelAnalyzer:
             f.write('='*70 + '\n\n')
             f.write(df_results.to_string(index=False))
             f.write('\n' + '='*70 + '\n')
-        print(f'\n✅ Saved table to: {table_path}')
+        print(f'\n[OK] Saved table to: {table_path}')
         
         # Create scatter plots
         self._plot_early_exit_scatter(all_early_scores, final_scores, early_exit_points)
@@ -818,7 +818,7 @@ class ModelAnalyzer:
         filepath = os.path.join(self.tree_analyzer.plotter.save_dir, 'early_exit_scatter.png')
         plt.savefig(filepath, dpi=300, bbox_inches='tight')
         plt.close()
-        print(f'✅ Saved scatter plots to: {filepath}')
+        print(f'[OK] Saved scatter plots to: {filepath}')
     
     def _plot_detailed_evolution(self, X: pd.DataFrame, total_trees: int) -> None:
         """Create detailed score evolution plot across all trees."""
@@ -882,7 +882,7 @@ class ModelAnalyzer:
         filepath = os.path.join(self.tree_analyzer.plotter.save_dir, 'early_exit_detailed_evolution.png')
         plt.savefig(filepath, dpi=300, bbox_inches='tight')
         plt.close()
-        print(f'✅ Saved detailed evolution plot to: {filepath}')
+        print(f'[OK] Saved detailed evolution plot to: {filepath}')
     
     def plot_marginal_impact_univariate(self, feature_name: str, 
                                        scale: str = "linear") -> None:
@@ -1043,7 +1043,7 @@ class ModelAnalyzer:
         filepath = os.path.join(marginal_dir, f"marginal_impact_{feature_name}.png")
         plt.savefig(filepath, dpi=300, bbox_inches='tight')
         plt.close()
-        print(f"  ✅ Generated: marginal_impact/{feature_name}.png")
+        print(f"  [OK] Generated: marginal_impact/{feature_name}.png")
     
     def _check_data_and_model(self) -> None:
         """Check that both data and model are loaded."""

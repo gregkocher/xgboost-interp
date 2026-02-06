@@ -159,7 +159,7 @@ class TreePlotter(BasePlotter):
                     gain_matrix[tree_idx, feat_idx] += loss_changes[node_id]
         
         if not gain_matrix.any():
-            print("⚠️ All gains are zero — no valid splits found.")
+            print("All gains are zero — no valid splits found.")
             return
         
         fig, ax = plt.subplots(figsize=(max(18, len(feature_names) * 0.25), 8))
