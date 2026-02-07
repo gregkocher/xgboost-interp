@@ -25,6 +25,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 import xgboost as xgb
 from xgboost_interp import TreeAnalyzer, ModelAnalyzer
+from xgboost_interp.utils import AnalysisTracker
 
 def download_instructions():
     """Print instructions for downloading the dataset."""
@@ -255,6 +256,8 @@ def save_model_and_data(model, X_test, y_test):
 
 def run_interpretability_analysis(model_path):
     """Run comprehensive interpretability analysis."""
+    tracker = AnalysisTracker()
+    
     print("\n" + "=" * 70)
     print("INTERPRETABILITY ANALYSIS")
     print("=" * 70)
@@ -311,10 +314,14 @@ def run_interpretability_analysis(model_path):
             print(f"\n  Analyzing {feature}...")
             model_analyzer.plot_partial_dependence(feature)
             model_analyzer.plot_marginal_impact_univariate(feature)
+            tracker.success(f"PDP + Marginal impact: {feature}")
         except Exception as e:
             print(f"   Could not analyze {feature}: {e}")
+            tracker.failure(f"PDP + Marginal impact: {feature}", e)
     
     print("\nData-dependent analysis complete!")
+    
+    tracker.print_summary()
     
     return tree_analyzer
 

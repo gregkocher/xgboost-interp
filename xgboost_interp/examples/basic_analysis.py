@@ -5,6 +5,7 @@ This example shows how to perform basic tree-level analysis without requiring da
 """
 
 from xgboost_interp import TreeAnalyzer, ModelAnalyzer
+from xgboost_interp.utils import AnalysisTracker
 
 
 def basic_tree_analysis_example():
@@ -69,8 +70,10 @@ def model_with_data_example():
                 n_curves=1000
             )
             print(f"Generated PDP for {feature}")
+            tracker.success(f"PDP: {feature}")
         except Exception as e:
             print(f"Could not generate PDP for {feature}: {e}")
+            tracker.failure(f"PDP: {feature}", e)
     
     # Plot prediction evolution across trees
     print("Analyzing prediction evolution...")
@@ -86,14 +89,22 @@ if __name__ == "__main__":
     print("XGBoost Interpretability Package - Basic Examples")
     print("=" * 50)
     
+    tracker = AnalysisTracker()
+    
     # Run basic tree analysis
     try:
         basic_tree_analysis_example()
+        tracker.success("Basic tree analysis")
     except Exception as e:
         print(f"Basic analysis failed: {e}")
+        tracker.failure("Basic tree analysis", e)
     
     # Run model analysis with data
     try:
         model_with_data_example()
+        tracker.success("Model analysis with data")
     except Exception as e:
         print(f"Model analysis with data failed: {e}")
+        tracker.failure("Model analysis with data", e)
+    
+    tracker.print_summary()

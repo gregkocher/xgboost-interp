@@ -17,6 +17,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from xgboost_interp import TreeAnalyzer, ModelAnalyzer
+from xgboost_interp.utils import AnalysisTracker
 
 
 def load_and_prepare_iris_data():
@@ -95,6 +96,8 @@ def train_iris_xgboost_model(df, feature_names, target, model_path="examples/iri
 
 def analyze_iris_model(model_path, data_df, feature_names, y_test=None, y_pred_proba=None):
     """Analyze the Iris model with our interpretability package."""
+    tracker = AnalysisTracker()
+    
     print(f"\n{'='*50}")
     print("ANALYZING IRIS MODEL")
     print(f"{'='*50}")
@@ -125,10 +128,13 @@ def analyze_iris_model(model_path, data_df, feature_names, y_test=None, y_pred_p
             top_k=5, combined=False
         )
         print("Generated interactive tree plots (opened in browser)")
+        tracker.success("Interactive tree plots")
     except ImportError:
         print("Plotly not available for interactive plots")
+        tracker.failure("Interactive tree plots", "Plotly not installed")
     except Exception as e:
         print(f"Could not generate interactive plots: {e}")
+        tracker.failure("Interactive tree plots", e)
     
     # Save data for analysis
     data_dir = "examples/iris/iris_data"
@@ -171,8 +177,10 @@ def analyze_iris_model(model_path, data_df, feature_names, y_test=None, y_pred_p
                     n_curves=150  # All samples
                 )
                 print(f"Generated PDP for {feature}")
+                tracker.success(f"PDP class {target_class}: {feature}")
             except Exception as e:
                 print(f"Could not generate PDP for {feature}: {e}")
+                tracker.failure(f"PDP class {target_class}: {feature}", e)
         
         # Marginal impact for all features (small dataset)
         print(f"\nGenerating marginal impact analysis for class {target_class} ({class_names[target_class]})...")
@@ -180,23 +188,29 @@ def analyze_iris_model(model_path, data_df, feature_names, y_test=None, y_pred_p
             try:
                 model_analyzer.plot_marginal_impact_univariate(feature, scale="linear")
                 print(f"Generated marginal impact for {feature}")
+                tracker.success(f"Marginal impact class {target_class}: {feature}")
             except Exception as e:
                 print(f"Could not generate marginal impact for {feature}: {e}")
+                tracker.failure(f"Marginal impact class {target_class}: {feature}", e)
         
         # Prediction evolution across trees
         print(f"\nGenerating prediction evolution plot for class {target_class} ({class_names[target_class]})...")
         try:
             model_analyzer.plot_scores_across_trees(n_records=1000)
             print(f"Generated scores across trees plot")
+            tracker.success(f"Scores across trees class {target_class}")
         except Exception as e:
             print(f"Could not generate scores across trees: {e}")
+            tracker.failure(f"Scores across trees class {target_class}", e)
         
         # Early exit performance analysis
         print(f"\nGenerating early exit performance analysis for class {target_class} ({class_names[target_class]})...")
         try:
             model_analyzer.analyze_early_exit_performance(n_records=5000, n_detailed_curves=1000)
+            tracker.success(f"Early exit analysis class {target_class}")
         except Exception as e:
             print(f"Could not generate early exit analysis: {e}")
+            tracker.failure(f"Early exit analysis class {target_class}", e)
         
         # ALE Plots
         print(f"\n[BONUS] Generating ALE plots for class {target_class} ({class_names[target_class]})...")
@@ -211,10 +225,13 @@ def analyze_iris_model(model_path, data_df, feature_names, y_test=None, y_pred_p
                     n_curves=min(10000, len(model_analyzer.df))
                 )
             print(f"  Generated {len(feature_names)} ALE plots in ALE_analysis/")
+            tracker.success(f"ALE plots class {target_class}")
         except ImportError:
             print("  PyALE not installed - skipping ALE plots")
+            tracker.failure(f"ALE plots class {target_class}", "PyALE not installed")
         except Exception as e:
             print(f"  Failed to generate ALE plots: {e}")
+            tracker.failure(f"ALE plots class {target_class}", e)
         
         # SHAP Analysis
         print(f"\nGenerating SHAP analysis for class {target_class} ({class_names[target_class]})...")
@@ -266,11 +283,15 @@ def analyze_iris_model(model_path, data_df, feature_names, y_test=None, y_pred_p
                 plt.close()
             
             print(f"  Generated SHAP analysis in SHAP_analysis_class_{target_class}/")
+            tracker.success(f"SHAP analysis class {target_class}")
         except ImportError:
             print("  shap not installed - skipping SHAP analysis")
+            tracker.failure(f"SHAP analysis class {target_class}", "shap not installed")
         except Exception as e:
             print(f"  Failed to generate SHAP analysis: {e}")
+            tracker.failure(f"SHAP analysis class {target_class}", e)
     
+    tracker.print_summary()
     print(f"\nAnalysis complete! Plots saved to: {tree_analyzer.plotter.save_dir}")
 
 

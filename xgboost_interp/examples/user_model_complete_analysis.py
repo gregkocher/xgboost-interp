@@ -22,9 +22,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 
 from xgboost_interp import TreeAnalyzer, ModelAnalyzer
 from xgboost_interp.plotting import FeaturePlotter, TreePlotter, InteractivePlotter
+from xgboost_interp.utils import AnalysisTracker
 
 
-def run_all_tree_level_analysis(tree_analyzer):
+def run_all_tree_level_analysis(tree_analyzer, tracker=None):
     """
     Run ALL tree-level analysis functions (no data required).
     
@@ -36,6 +37,9 @@ def run_all_tree_level_analysis(tree_analyzer):
     - Advanced tree statistics
     - Marginal impact analysis (tree-level)
     """
+    if tracker is None:
+        tracker = AnalysisTracker()
+    
     start_time = time.time()
     print("\n" + "="*70)
     print("PART 1: TREE-LEVEL ANALYSIS (No Data Required)")
@@ -51,8 +55,10 @@ def run_all_tree_level_analysis(tree_analyzer):
     try:
         tree_analyzer.plot_feature_importance_combined()
         print("Generated: feature_importance_combined.png")
+        tracker.success("Feature importance combined")
     except Exception as e:
         print(f"Error: {e}")
+        tracker.failure("Feature importance combined", e)
     
     # 3. Feature importance distributions (boxplots)
     print("\n[3/15] Generating feature importance distributions...")
@@ -61,64 +67,80 @@ def run_all_tree_level_analysis(tree_analyzer):
         print("Generated: feature_weight.png")
         print("Generated: feature_gain_distribution.png")
         print("Generated: feature_cover_distribution.png")
+        tracker.success("Feature importance distributions")
     except Exception as e:
         print(f"Error: {e}")
+        tracker.failure("Feature importance distributions", e)
     
     # 4. Feature importance scatter plot
     print("\n[4/15] Generating feature importance scatter plot...")
     try:
         tree_analyzer.plot_feature_importance_scatter()
         print("Generated: feature_importance_scatter.png")
+        tracker.success("Feature importance scatter")
     except Exception as e:
         print(f"Error: {e}")
+        tracker.failure("Feature importance scatter", e)
     
     # 5. Tree depth histogram
     print("\n[5/15] Generating tree depth histogram...")
     try:
         tree_analyzer.plot_tree_depth_histogram()
         print("Generated: tree_depth_histogram.png")
+        tracker.success("Tree depth histogram")
     except Exception as e:
         print(f"Error: {e}")
+        tracker.failure("Tree depth histogram", e)
     
     # 6. Cumulative gain
     print("\n[6/15] Generating cumulative gain plot...")
     try:
         tree_analyzer.plot_cumulative_gain()
         print("Generated: cumulative_gain.png")
+        tracker.success("Cumulative gain")
     except Exception as e:
         print(f"Error: {e}")
+        tracker.failure("Cumulative gain", e)
     
     # 7. Cumulative prediction shift
     print("\n[7/15] Generating cumulative prediction shift plot...")
     try:
         tree_analyzer.plot_cumulative_prediction_shift()
         print("Generated: cumulative_prediction_shift.png")
+        tracker.success("Cumulative prediction shift")
     except Exception as e:
         print(f"Error: {e}")
+        tracker.failure("Cumulative prediction shift", e)
     
     # 8. Tree-level feature co-occurrence
     print("\n[8/15] Generating tree-level feature co-occurrence heatmap...")
     try:
         tree_analyzer.plot_tree_level_feature_cooccurrence()
         print("Generated: feature_cooccurrence_tree_level.png")
+        tracker.success("Tree-level feature co-occurrence")
     except Exception as e:
         print(f"Error: {e}")
+        tracker.failure("Tree-level feature co-occurrence", e)
     
     # 9. Path-level feature co-occurrence
     print("\n[9/16] Generating path-level feature co-occurrence heatmap...")
     try:
         tree_analyzer.plot_path_level_feature_cooccurrence()
         print("Generated: feature_cooccurrence_path_level.png")
+        tracker.success("Path-level feature co-occurrence")
     except Exception as e:
         print(f"Error: {e}")
+        tracker.failure("Path-level feature co-occurrence", e)
     
     # 10. Sequential feature co-occurrence
     print("\n[10/16] Generating sequential feature co-occurrence heatmap...")
     try:
         tree_analyzer.plot_sequential_feature_dependency()
         print("Generated: feature_cooccurrence_sequential.png")
+        tracker.success("Sequential feature dependency")
     except Exception as e:
         print(f"Error: {e}")
+        tracker.failure("Sequential feature dependency", e)
     
     # Initialize advanced plotters
     feature_plotter = FeaturePlotter(tree_analyzer.plotter.save_dir)
@@ -133,8 +155,10 @@ def run_all_tree_level_analysis(tree_analyzer):
             log_scale=True
         )
         print("Generated: feature_usage_heatmap.png")
+        tracker.success("Feature usage heatmap")
     except Exception as e:
         print(f"Error: {e}")
+        tracker.failure("Feature usage heatmap", e)
     
     # 12. Split depth per feature
     print("\n[12/16] Generating split depth per feature plot...")
@@ -144,8 +168,10 @@ def run_all_tree_level_analysis(tree_analyzer):
             tree_analyzer.feature_names
         )
         print("Generated: split_depth_per_feature.png")
+        tracker.success("Split depth per feature")
     except Exception as e:
         print(f"Error: {e}")
+        tracker.failure("Split depth per feature", e)
     
     # 13. Feature split impact
     print("\n[13/16] Generating feature split impact plot...")
@@ -156,8 +182,10 @@ def run_all_tree_level_analysis(tree_analyzer):
             log_scale=False
         )
         print("Generated: feature_split_impact.png")
+        tracker.success("Feature split impact")
     except Exception as e:
         print(f"Error: {e}")
+        tracker.failure("Feature split impact", e)
     
     # 13. Prediction and gain statistics
     print("\n[14/16] Generating prediction and gain statistics plots...")
@@ -170,8 +198,10 @@ def run_all_tree_level_analysis(tree_analyzer):
         print("Generated: prediction_stats_by_depth.png")
         print("Generated: gain_stats_per_tree.png")
         print("Generated: gain_stats_by_depth.png")
+        tracker.success("Prediction and gain statistics")
     except Exception as e:
         print(f"Error: {e}")
+        tracker.failure("Prediction and gain statistics", e)
     
     # 14. Gain heatmap
     print("\n[15/16] Generating gain heatmap...")
@@ -181,8 +211,10 @@ def run_all_tree_level_analysis(tree_analyzer):
             tree_analyzer.feature_names
         )
         print("Generated: gain_heatmap.png")
+        tracker.success("Gain heatmap")
     except Exception as e:
         print(f"Error: {e}")
+        tracker.failure("Gain heatmap", e)
     
     # 15. Marginal impact analysis (NO DATA REQUIRED)
     print("\n[16/16] Generating marginal impact plots for all features...")
@@ -201,8 +233,10 @@ def run_all_tree_level_analysis(tree_analyzer):
             temp_analyzer.plot_marginal_impact_univariate(feature, scale="linear")
             marginal_success_count += 1
             print(f"  Generated: marginal_impact/{feature}.png")
+            tracker.success(f"Marginal impact: {feature}")
         except Exception as e:
             print(f"  Failed for {feature}: {e}")
+            tracker.failure(f"Marginal impact: {feature}", e)
     
     print(f"\nGenerated {marginal_success_count}/{len(feature_names)} marginal impact plots")
     print(f"   Saved in: {tree_analyzer.plotter.save_dir}/marginal_impact/")
@@ -220,11 +254,14 @@ def run_all_tree_level_analysis(tree_analyzer):
             combined=False
         )
         print(f"Generated: {num_trees_to_plot} interactive tree PNG files")
+        tracker.success("Interactive tree plots")
     except ImportError:
         print("Plotly not installed - skipping interactive plots")
         print("   Install with: pip install plotly networkx")
+        tracker.failure("Interactive tree plots", "Plotly not installed")
     except Exception as e:
         print(f"Error: {e}")
+        tracker.failure("Interactive tree plots", e)
     
     elapsed_time = time.time() - start_time
     print("\n" + "="*70)
@@ -232,7 +269,7 @@ def run_all_tree_level_analysis(tree_analyzer):
     print("="*70)
 
 
-def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, target_class=None, plotting_mode='raw', target_column=None):
+def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, target_class=None, plotting_mode='raw', target_column=None, tracker=None):
     """
     Run ALL data-dependent analysis functions.
     
@@ -249,7 +286,10 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
         data_dir: Directory containing parquet files
         target_class: Target class for multi-class models (None for binary/regression)
         plotting_mode: Y-axis mode for PDPs and score plots ('raw', 'probability', or 'logit')
+        tracker: Optional AnalysisTracker instance for failure tracking
     """
+    if tracker is None:
+        tracker = AnalysisTracker()
     start_time = time.time()
     print("\n" + "="*70)
     print("PART 2: DATA-DEPENDENT ANALYSIS (Requires Data)")
@@ -261,8 +301,10 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
     try:
         model_analyzer.load_data_from_parquets(data_dir, num_files_to_read=1000)
         print(f"Loaded data: {len(model_analyzer.df)} records")
+        tracker.success("Load data from parquets")
     except Exception as e:
         print(f"Failed to load data: {e}")
+        tracker.failure("Load data from parquets", e)
         return False
     
     # Load XGBoost model
@@ -270,8 +312,10 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
     try:
         model_analyzer.load_xgb_model()
         print("Model loaded successfully")
+        tracker.success("Load XGBoost model")
     except Exception as e:
         print(f"Failed to load model: {e}")
+        tracker.failure("Load XGBoost model", e)
         return False
     
     # Model performance metrics (if target column provided)
@@ -322,8 +366,10 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
             )
             pdp_success_count += 1
             print(f"  Generated: pdp/{feature}.png")
+            tracker.success(f"PDP: {feature}")
         except Exception as e:
             print(f"  Failed for {feature}: {e}")
+            tracker.failure(f"PDP: {feature}", e)
     
     pdp_elapsed = time.time() - pdp_start_time
     print(f"\nGenerated {pdp_success_count}/{len(feature_names)} PDP plots in {pdp_elapsed:.2f}s")
@@ -342,8 +388,10 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
             mode=plotting_mode
         )
         print("  Generated: scores_across_trees.png")
+        tracker.success("Scores across trees")
     except Exception as e:
         print(f"  Failed: {e}")
+        tracker.failure("Scores across trees", e)
     
     # Early exit performance analysis
     print("\n[5/5] Generating early exit performance analysis...")
@@ -352,8 +400,10 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
             n_records=min(5000, len(model_analyzer.df)),
             n_detailed_curves=1000
         )
+        tracker.success("Early exit analysis")
     except Exception as e:
         print(f"Could not generate early exit analysis: {e}")
+        tracker.failure("Early exit analysis", e)
     
     # ALE plots (optional - requires pyALE)
     print("\n[BONUS] Attempting to generate ALE plots (requires pyALE)...")
@@ -377,8 +427,10 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
                 )
                 ale_success_count += 1
                 print(f"  Generated: ALE_analysis/{feature}.png")
+                tracker.success(f"ALE: {feature}")
             except Exception as e:
                 print(f"  Failed for {feature}: {e}")
+                tracker.failure(f"ALE: {feature}", e)
         
         ale_elapsed = time.time() - ale_start_time
         print(f"\n   Generated {ale_success_count}/{len(all_features)} ALE plots in {ale_elapsed:.2f}s")
@@ -387,6 +439,7 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
     except ImportError:
         print("  pyALE not installed - skipping ALE plots")
         print("     Install with: pip install pyALE")
+        tracker.failure("ALE plots", "pyALE not installed")
     
     # SHAP Analysis
     print("\n[BONUS] Attempting to generate SHAP analysis plots...")
@@ -452,10 +505,12 @@ def run_all_data_dependent_analysis(model_analyzer, tree_analyzer, data_dir, tar
         shap_elapsed = time.time() - shap_start_time
         print(f"\n   SHAP analysis complete in {shap_elapsed:.2f}s")
         print(f"   SHAP analysis plots saved in: {shap_dir}")
+        tracker.success("SHAP analysis")
         
     except ImportError:
         print("  shap not installed - skipping SHAP analysis")
         print("     Install with: pip install shap")
+        tracker.failure("SHAP analysis", "shap not installed")
     
     elapsed_time = time.time() - start_time
     print("\n" + "="*70)
@@ -614,6 +669,9 @@ For multi-class models, you can run this script multiple times with different
         print(f"Target Class: {args.target_class}")
     print("="*70)
     
+    # Initialize analysis tracker
+    tracker = AnalysisTracker()
+    
     # Initialize TreeAnalyzer
     print("\nInitializing TreeAnalyzer...")
     try:
@@ -624,7 +682,7 @@ For multi-class models, you can run this script multiple times with different
         sys.exit(1)
     
     # Run all tree-level analysis
-    run_all_tree_level_analysis(tree_analyzer)
+    run_all_tree_level_analysis(tree_analyzer, tracker=tracker)
     
     # Run data-dependent analysis if data directory provided
     data_analysis_done = False
@@ -640,7 +698,8 @@ For multi-class models, you can run this script multiple times with different
                 args.data_dir,
                 args.target_class,
                 args.plotting_mode,
-                args.target_column
+                args.target_column,
+                tracker=tracker
             )
         except Exception as e:
             print(f"Failed to run data-dependent analysis: {e}")
@@ -657,6 +716,9 @@ For multi-class models, you can run this script multiple times with different
         print("  - ALE Plots")
         print("\nRe-run with: python user_model_complete_analysis.py MODEL.json DATA_DIR/")
         print("="*70)
+    
+    # Print failure/success summary
+    tracker.print_summary()
     
     # Generate summary report
     generate_summary_report(tree_analyzer, data_analysis_done)

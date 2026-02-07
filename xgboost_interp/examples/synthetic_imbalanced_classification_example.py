@@ -28,6 +28,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 
 from xgboost_interp import TreeAnalyzer, ModelAnalyzer
 from xgboost_interp.plotting import FeaturePlotter, TreePlotter
+from xgboost_interp.utils import AnalysisTracker
 
 # =============================================================================
 # CONFIGURATION PARAMETERS
@@ -565,6 +566,8 @@ def run_full_analysis(
     output_dir: str = "examples/synthetic_imbalanced_classification/output"
 ):
     """Run complete interpretability analysis on the trained model."""
+    tracker = AnalysisTracker()
+    
     print("\n" + "="*60)
     print("RUNNING FULL INTERPRETABILITY ANALYSIS")
     print("="*60)
@@ -630,8 +633,10 @@ def run_full_analysis(
             top_k=5, combined=False
         )
         print("  Interactive tree plots generated")
+        tracker.success("Interactive tree plots")
     except Exception as e:
         print(f"  Could not generate interactive plots: {e}")
+        tracker.failure("Interactive tree plots", e)
     
     # -------------------------------------------------------------------------
     # Data-dependent Analysis
@@ -680,8 +685,10 @@ def run_full_analysis(
                 n_curves=200
             )
             print(f"  [{i+1}/{len(feature_names)}] {feature}")
+            tracker.success(f"PDP: {feature}")
         except Exception as e:
             print(f"  [{i+1}/{len(feature_names)}] {feature}: {e}")
+            tracker.failure(f"PDP: {feature}", e)
     
     # Marginal Impact Analysis (all features)
     print(f"\nGenerating Marginal Impact Analysis for all {len(feature_names)} features...")
@@ -689,23 +696,29 @@ def run_full_analysis(
         try:
             model_analyzer.plot_marginal_impact_univariate(feature, scale="linear")
             print(f"  [{i+1}/{len(feature_names)}] {feature}")
+            tracker.success(f"Marginal impact: {feature}")
         except Exception as e:
             print(f"  [{i+1}/{len(feature_names)}] {feature}: {e}")
+            tracker.failure(f"Marginal impact: {feature}", e)
     
     # Prediction Evolution
     print("\nGenerating prediction evolution plot...")
     try:
         model_analyzer.plot_scores_across_trees(n_records=1000)
         print("  Scores across trees plot saved")
+        tracker.success("Scores across trees")
     except Exception as e:
         print(f"  Could not generate scores across trees: {e}")
+        tracker.failure("Scores across trees", e)
     
     # Early exit performance analysis
     print("\nGenerating early exit performance analysis...")
     try:
         model_analyzer.analyze_early_exit_performance(n_records=5000, n_detailed_curves=1000)
+        tracker.success("Early exit analysis")
     except Exception as e:
         print(f"  Could not generate early exit analysis: {e}")
+        tracker.failure("Early exit analysis", e)
     
     # ALE Plots (all features)
     print(f"\nGenerating ALE Plots for all {len(feature_names)} features...")
@@ -720,10 +733,13 @@ def run_full_analysis(
                 n_curves=min(5000, len(model_analyzer.df))
             )
         print("  ALE plots saved")
+        tracker.success("ALE plots")
     except ImportError:
         print("  PyALE not installed - skipping ALE plots")
+        tracker.failure("ALE plots", "PyALE not installed")
     except Exception as e:
         print(f"  Failed to generate ALE plots: {e}")
+        tracker.failure("ALE plots", e)
     
     # SHAP Analysis
     print("\nGenerating SHAP Analysis...")
@@ -771,11 +787,15 @@ def run_full_analysis(
             plt.close()
         
         print("  SHAP analysis saved")
+        tracker.success("SHAP analysis")
     except ImportError:
         print("  shap not installed - skipping SHAP analysis")
+        tracker.failure("SHAP analysis", "shap not installed")
     except Exception as e:
         print(f"  Failed to generate SHAP analysis: {e}")
+        tracker.failure("SHAP analysis", e)
     
+    tracker.print_summary()
     print(f"\nAnalysis complete! All plots saved to: {output_dir}")
 
 

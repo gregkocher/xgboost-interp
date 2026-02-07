@@ -27,6 +27,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 
 from xgboost_interp import TreeAnalyzer, ModelAnalyzer
 from xgboost_interp.core import ModelDiff
+from xgboost_interp.utils import AnalysisTracker
 
 # Import data generation from synthetic example
 from xgboost_interp.examples.synthetic_imbalanced_classification_example import (
@@ -201,6 +202,8 @@ def main():
     # -------------------------------------------------------------------------
     # 5. Run all ModelDiff methods
     # -------------------------------------------------------------------------
+    tracker = AnalysisTracker()
+    
     print("\n[5/5] Running all ModelDiff comparisons...")
     
     # 5a. Print summary
@@ -261,8 +264,10 @@ def main():
                     n_curves=1000,
                     mode="raw",
                 )
+                tracker.success(f"PDP comparison: {feature}")
             except Exception as e:
                 print(f"    Warning: Could not compare PDP for {feature}: {e}")
+                tracker.failure(f"PDP comparison: {feature}", e)
         else:
             print(f"  Skipping '{feature}' (not in both models)")
     
@@ -274,6 +279,8 @@ def main():
         y_true=df['target'].values,
         n_samples=None,
     )
+    
+    tracker.print_summary()
     
     # -------------------------------------------------------------------------
     # Summary
