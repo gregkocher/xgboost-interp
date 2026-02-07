@@ -268,8 +268,8 @@ def run_interpretability_analysis(model_path):
     
     # Tree structure analysis
     print("\nGenerating tree structure analysis...")
-    tree_analyzer.plot_feature_importance_combined(top_n=30)
-    tree_analyzer.plot_feature_importance_distributions(log_scale=True, top_n=20)
+    tree_analyzer.plot_feature_importance_combined()
+    tree_analyzer.plot_feature_importance_distributions(log_scale=True)
     tree_analyzer.plot_tree_depth_histogram()
     tree_analyzer.plot_cumulative_gain()
     

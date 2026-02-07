@@ -49,7 +49,7 @@ def run_all_tree_level_analysis(tree_analyzer):
     # 2. Combined feature importance (weight, gain, cover)
     print("\n[2/15] Generating combined feature importance plot...")
     try:
-        tree_analyzer.plot_feature_importance_combined(top_n=20)
+        tree_analyzer.plot_feature_importance_combined()
         print("Generated: feature_importance_combined.png")
     except Exception as e:
         print(f"Error: {e}")
@@ -57,7 +57,7 @@ def run_all_tree_level_analysis(tree_analyzer):
     # 3. Feature importance distributions (boxplots)
     print("\n[3/15] Generating feature importance distributions...")
     try:
-        tree_analyzer.plot_feature_importance_distributions(log_scale=True, top_n=20)
+        tree_analyzer.plot_feature_importance_distributions(log_scale=True)
         print("Generated: feature_weight.png")
         print("Generated: feature_gain_distribution.png")
         print("Generated: feature_cover_distribution.png")
@@ -67,7 +67,7 @@ def run_all_tree_level_analysis(tree_analyzer):
     # 4. Feature importance scatter plot
     print("\n[4/15] Generating feature importance scatter plot...")
     try:
-        tree_analyzer.plot_feature_importance_scatter(top_n=30)
+        tree_analyzer.plot_feature_importance_scatter()
         print("Generated: feature_importance_scatter.png")
     except Exception as e:
         print(f"Error: {e}")

@@ -21,8 +21,8 @@ def basic_tree_analysis_example():
     
     # Generate various plots
     print("Generating feature importance plots...")
-    tree_analyzer.plot_feature_importance_combined(top_n=20)
-    tree_analyzer.plot_feature_importance_distributions(log_scale=True, top_n=20)
+    tree_analyzer.plot_feature_importance_combined()
+    tree_analyzer.plot_feature_importance_distributions(log_scale=True)
     
     print("Generating tree structure plots...")
     tree_analyzer.plot_tree_depth_histogram()
