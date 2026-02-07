@@ -27,6 +27,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from xgboost_interp import TreeAnalyzer, ModelAnalyzer
+from xgboost_interp.plotting import FeaturePlotter, TreePlotter
 
 # =============================================================================
 # CONFIGURATION PARAMETERS
@@ -587,7 +588,37 @@ def run_full_analysis(
     print("Generating tree structure plots...")
     tree_analyzer.plot_tree_depth_histogram()
     tree_analyzer.plot_cumulative_gain()
+    tree_analyzer.plot_cumulative_prediction_shift()
     print("  Tree structure plots saved")
+    
+    # Feature co-occurrence analysis
+    print("Generating feature co-occurrence heatmaps...")
+    tree_analyzer.plot_tree_level_feature_cooccurrence()
+    tree_analyzer.plot_path_level_feature_cooccurrence()
+    tree_analyzer.plot_sequential_feature_dependency()
+    print("  Feature co-occurrence heatmaps saved")
+    
+    # Advanced feature and tree statistics
+    print("Generating advanced feature and tree statistics...")
+    feature_plotter = FeaturePlotter(output_dir)
+    tree_plotter = TreePlotter(output_dir)
+    
+    feature_plotter.plot_feature_usage_heatmap(
+        tree_analyzer.trees, tree_analyzer.feature_names, log_scale=True
+    )
+    feature_plotter.plot_split_depth_per_feature(
+        tree_analyzer.trees, tree_analyzer.feature_names
+    )
+    feature_plotter.plot_feature_split_impact(
+        tree_analyzer.trees, tree_analyzer.feature_names, log_scale=False
+    )
+    tree_plotter.plot_prediction_and_gain_stats(
+        tree_analyzer.trees, log_scale=False
+    )
+    tree_plotter.plot_gain_heatmap(
+        tree_analyzer.trees, tree_analyzer.feature_names
+    )
+    print("  Advanced statistics plots saved")
     
     # Interactive tree visualization
     print("Generating interactive tree visualizations...")
@@ -629,43 +660,37 @@ def run_full_analysis(
         print("\nGenerating calibration curves...")
         model_analyzer.generate_calibration_curves(y_test, y_pred_proba, X=X_test, n_bins=10)
     
-    # Select subset of features for detailed analysis
-    # (analyzing all features would take too long)
+    # Subset of features for SHAP dependence plots (full analysis is too slow per-feature)
     important_features = [
-        # Strong effects (should be most important)
         'norm_iid_pos_strong', 'norm_iid_neg_strong',
         'bin_pos_strong', 'bin_neg_strong',
-        # Medium effects
         'norm_corr_1_pos', 'norm_corr_3_neg',
         'unif_linear_pos', 'unif_quad_pos',
-        # Trigonometric (periodic relationships)
         'trig_sin_pos_x', 'trig_cos_pos_x',
-        # Categorical
         'cat_15_strong', 'cat_75_mixed',
-        # Noise (should have minimal importance)
         'noise_norm', 'noise_unif',
     ]
     
-    # Partial Dependence Plots
-    print("\nGenerating Partial Dependence Plots...")
-    for i, feature in enumerate(important_features):
+    # Partial Dependence Plots (all features)
+    print(f"\nGenerating Partial Dependence Plots for all {len(feature_names)} features...")
+    for i, feature in enumerate(feature_names):
         try:
             model_analyzer.plot_partial_dependence(
                 feature_name=feature,
                 n_curves=200
             )
-            print(f"  [{i+1}/{len(important_features)}] {feature}")
+            print(f"  [{i+1}/{len(feature_names)}] {feature}")
         except Exception as e:
-            print(f"  [{i+1}/{len(important_features)}] {feature}: {e}")
+            print(f"  [{i+1}/{len(feature_names)}] {feature}: {e}")
     
-    # Marginal Impact Analysis
-    print("\nGenerating Marginal Impact Analysis...")
-    for i, feature in enumerate(important_features):
+    # Marginal Impact Analysis (all features)
+    print(f"\nGenerating Marginal Impact Analysis for all {len(feature_names)} features...")
+    for i, feature in enumerate(feature_names):
         try:
             model_analyzer.plot_marginal_impact_univariate(feature, scale="linear")
-            print(f"  [{i+1}/{len(important_features)}] {feature}")
+            print(f"  [{i+1}/{len(feature_names)}] {feature}")
         except Exception as e:
-            print(f"  [{i+1}/{len(important_features)}] {feature}: {e}")
+            print(f"  [{i+1}/{len(feature_names)}] {feature}: {e}")
     
     # Prediction Evolution
     print("\nGenerating prediction evolution plot...")
@@ -682,12 +707,12 @@ def run_full_analysis(
     except Exception as e:
         print(f"  Could not generate early exit analysis: {e}")
     
-    # ALE Plots
-    print("\nGenerating ALE Plots...")
+    # ALE Plots (all features)
+    print(f"\nGenerating ALE Plots for all {len(feature_names)} features...")
     try:
         from PyALE import ale
-        for i, feature in enumerate(important_features):
-            print(f"  [{i+1}/{len(important_features)}] Computing ALE for '{feature}'...")
+        for i, feature in enumerate(feature_names):
+            print(f"  [{i+1}/{len(feature_names)}] Computing ALE for '{feature}'...")
             model_analyzer.plot_ale(
                 feature_name=feature,
                 grid_size=50,
