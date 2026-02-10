@@ -6,15 +6,15 @@ Uses the existing model_diffing_example.py to generate artifacts
 """
 
 import os
-import sys
 import subprocess
+import sys
 import tempfile
 
 import numpy as np
 import pytest
 
-# Add the package to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Mark all tests in this module as integration (they run the full example script)
+pytestmark = pytest.mark.integration
 
 from xgboost_interp import TreeAnalyzer, ModelAnalyzer
 from xgboost_interp.core import ModelDiff

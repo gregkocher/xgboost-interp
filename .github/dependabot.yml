@@ -10,10 +10,10 @@ updates:
       prefix: "deps"
 
   # GitHub Actions
-  # - package-ecosystem: "github-actions"
-  #   directory: "/"
-  #   schedule:
-  #     interval: "monthly"
-  #   commit-message:
-  #     prefix: "ci"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "ci"
 

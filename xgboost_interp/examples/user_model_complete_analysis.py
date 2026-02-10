@@ -13,12 +13,8 @@ Requirements:
 """
 
 import os
-import sys
 import argparse
 import time
-
-# Add the package to path for local development
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from xgboost_interp import TreeAnalyzer, ModelAnalyzer
 from xgboost_interp.plotting import FeaturePlotter, TreePlotter, InteractivePlotter

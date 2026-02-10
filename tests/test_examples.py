@@ -3,13 +3,10 @@ Integration tests that run example scripts and verify outputs.
 """
 
 import os
-import sys
 import subprocess
+import sys
 import pytest
 import tempfile
-
-# Add the package to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Timeout in seconds (10 minutes)
 TIMEOUT_SECONDS = 600
@@ -60,6 +57,7 @@ def verify_output_files(output_dir: str, min_png_count: int = 1) -> None:
     print(f"✓ Verified {len(png_files)} PNG files in {output_dir}")
 
 
+@pytest.mark.integration
 def test_iris_example():
     """Test that the Iris classification example runs successfully."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -73,6 +71,7 @@ def test_iris_example():
         verify_output_files(output_dir, min_png_count=1)
 
 
+@pytest.mark.integration
 def test_california_housing_example():
     """Test that the California Housing example runs successfully."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -86,6 +85,7 @@ def test_california_housing_example():
         verify_output_files(output_dir, min_png_count=1)
 
 
+@pytest.mark.integration
 def test_synthetic_imbalanced_classification_example():
     """Test that the Synthetic Imbalanced Classification example runs successfully."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -99,6 +99,7 @@ def test_synthetic_imbalanced_classification_example():
         verify_output_files(output_dir, min_png_count=1)
 
 
+@pytest.mark.integration
 def test_model_diffing_example():
     """Test that the Model Diffing example runs successfully."""
     with tempfile.TemporaryDirectory() as tmpdir:

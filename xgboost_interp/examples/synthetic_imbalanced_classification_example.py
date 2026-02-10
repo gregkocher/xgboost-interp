@@ -21,10 +21,6 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from scipy import stats
 import os
-import sys
-
-# Add the package to path for local development
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from xgboost_interp import TreeAnalyzer, ModelAnalyzer
 from xgboost_interp.plotting import FeaturePlotter, TreePlotter

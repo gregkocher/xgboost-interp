@@ -1,9 +1,35 @@
 [project]
 name = "xgboost-interp"
-version = "0.1.0"
+dynamic = ["version"]
 description = "A comprehensive toolkit for interpreting and analyzing XGBoost models"
 readme = "README.md"
 requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "Greg Kocher"}]
+keywords = [
+    "xgboost",
+    "interpretability",
+    "explainability",
+    "feature-importance",
+    "model-analysis",
+    "tree-analysis",
+    "partial-dependence",
+    "machine-learning",
+    "gradient-boosting",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Visualization",
+]
 dependencies = [
     "matplotlib>=3.3.0",
     "networkx>=2.5.0",
@@ -11,15 +37,53 @@ dependencies = [
     "pandas>=1.2.0",
     "plotly>=5.0.0",
     "pyALE>=0.2.0",
-    "pyarrow>=10.0.0",
-    "pytest>=6.0",
     "scikit-learn>=0.24.0",
     "scipy>=1.6.0",
     "seaborn>=0.11.0",
-    "shap>=0.40.0",
     "xgboost>=1.4.0",
 ]
+
+[project.optional-dependencies]
+shap = ["shap>=0.40.0"]
+data = ["pyarrow>=10.0.0"]
+all = ["xgboost-interp[shap]", "xgboost-interp[data]"]
+dev = ["pytest>=6.0", "pytest-timeout>=2.0", "xgboost-interp[all]"]
+
+[project.urls]
+Homepage = "https://github.com/gregkocher/xgboost-interp"
+Repository = "https://github.com/gregkocher/xgboost-interp"
+Issues = "https://github.com/gregkocher/xgboost-interp/issues"
+
+[project.scripts]
+xgb-interp-analyze = "xgboost_interp.examples.user_model_complete_analysis:main"
+xgb-interp-diff = "xgboost_interp.examples.user_model_diff:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: full integration tests that train models and run example scripts",
+]
+
+[tool.hatch.version]
+path = "xgboost_interp/__init__.py"
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+    "/examples/",
+    "/docs/",
+    "/tests/",
+    "/scripts/",
+    "*.md",
+    "run_examples.py",
+    "test_marginal/",
+    "test_model/",
+    "test_marginal.json",
+    "test_model.json",
+    "uv.lock",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["xgboost_interp"]

@@ -6,7 +6,7 @@
   <a href="https://www.repostatus.org/#active"><img src="https://www.repostatus.org/badges/latest/active.svg" alt="Project Status: Active"></a>
   <a href="https://github.com/gregkocher/xgboost-interp/blob/main/LICENSE"><img src="https://img.shields.io/github/license/gregkocher/xgboost-interp" alt="License"></a>
   <a href="https://github.com/gregkocher/xgboost-interp/actions/workflows/tests.yml"><img src="https://github.com/gregkocher/xgboost-interp/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
-  <a href="#"><img src="https://img.shields.io/badge/DOI-TBD-lightgrey" alt="DOI"></a>
+  <a href="https://pypi.org/project/xgboost-interp/"><img src="https://img.shields.io/pypi/v/xgboost-interp" alt="PyPI"></a>
 </p>
 
 # XGBoost Interpretability Package
@@ -40,6 +40,23 @@ A comprehensive toolkit for interpreting and analyzing XGBoost models. This pack
 - **Tree Explorer**: Interactive tree structure visualization with Plotly, showing all split features and split thresholds
 
 
+## Installation
+
+```bash
+pip install xgboost-interp
+pip install xgboost-interp[shap]    # includes SHAP support
+pip install xgboost-interp[all]     # all optional dependencies
+```
+
+### Development Setup
+
+```bash
+git clone https://github.com/gregkocher/xgboost-interp.git
+cd xgboost-interp
+uv sync
+source .venv/bin/activate
+```
+
 ## Requirements
 
 - Python 3.10+
@@ -49,22 +66,14 @@ A comprehensive toolkit for interpreting and analyzing XGBoost models. This pack
 - pandas >= 1.2.0
 - plotly >= 5.0.0
 - pyALE >= 0.2.0
-- pyarrow >= 10.0.0
 - scikit-learn >= 0.24.0
 - scipy >= 1.6.0
 - seaborn >= 0.11.0
-- shap >= 0.40.0
 - xgboost >= 1.4.0
 
-
-## Setup
-
-```bash
-git clone https://github.com/gregkocher/xgboost-interp.git
-cd xgboost-interp
-uv sync
-source .venv/bin/activate
-```
+**Optional:**
+- shap >= 0.40.0 — install via `pip install xgboost-interp[shap]`
+- pyarrow >= 10.0.0 — install via `pip install xgboost-interp[data]`
 
 
 ## Quick Start

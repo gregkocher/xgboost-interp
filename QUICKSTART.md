@@ -34,7 +34,7 @@ python xgboost_interp/examples/user_model_complete_analysis.py your_model.json d
 ### Option 1: Interactive Runner (Recommended)
 
 ```bash
-cd /Users/gkocher/Desktop/xgboost-interp
+cd xgboost-interp
 
 # Install the package
 pip install -e .

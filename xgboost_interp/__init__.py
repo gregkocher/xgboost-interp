@@ -8,12 +8,13 @@ and interactive visualizations.
 
 from .core.tree_analyzer import TreeAnalyzer
 from .core.model_analyzer import ModelAnalyzer
+from .core.model_diff import ModelDiff
 
 __version__ = "0.1.0"
 __author__ = "Greg Kocher"
-__email__ = "your.email@example.com"
 
 __all__ = [
     "TreeAnalyzer",
     "ModelAnalyzer",
+    "ModelDiff",
 ]
