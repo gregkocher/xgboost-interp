@@ -30,6 +30,10 @@ def basic_tree_analysis_example():
     tree_analyzer.plot_cumulative_gain()
     tree_analyzer.plot_cumulative_prediction_shift()
     
+    # Feature Freeze Analysis (optional):
+    # Analyze what fraction of the model is impacted if a feature is frozen at a value.
+    # tree_analyzer.analyze_feature_freeze("your_feature_name", 0.5)
+    
     print("Basic analysis complete! Check the output directory for plots.")
 
 

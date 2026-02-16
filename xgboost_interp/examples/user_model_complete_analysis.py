@@ -13,6 +13,7 @@ Requirements:
 """
 
 import os
+import sys
 import argparse
 import time
 
@@ -21,7 +22,7 @@ from xgboost_interp.plotting import FeaturePlotter, TreePlotter, InteractivePlot
 from xgboost_interp.utils import AnalysisTracker
 
 
-def run_all_tree_level_analysis(tree_analyzer, tracker=None):
+def run_all_tree_level_analysis(tree_analyzer, tracker=None, freeze_feature=None, freeze_value=None):
     """
     Run ALL tree-level analysis functions (no data required).
     
@@ -258,6 +259,16 @@ def run_all_tree_level_analysis(tree_analyzer, tracker=None):
     except Exception as e:
         print(f"Error: {e}")
         tracker.failure("Interactive tree plots", e)
+    
+    # Feature Freeze Analysis (optional, only if user provides --freeze-feature and --freeze-value)
+    if freeze_feature is not None and freeze_value is not None:
+        print(f"\n[EXTRA] Running feature freeze analysis: {freeze_feature} = {freeze_value}...")
+        try:
+            tree_analyzer.analyze_feature_freeze(freeze_feature, freeze_value)
+            tracker.success(f"Feature freeze: {freeze_feature}={freeze_value}")
+        except Exception as e:
+            print(f"Error: {e}")
+            tracker.failure(f"Feature freeze: {freeze_feature}={freeze_value}", e)
     
     elapsed_time = time.time() - start_time
     print("\n" + "="*70)
@@ -640,6 +651,20 @@ For multi-class models, you can run this script multiple times with different
         help='Name of target column in data for computing model performance metrics'
     )
     
+    parser.add_argument(
+        '--freeze-feature',
+        type=str,
+        default=None,
+        help='Feature name for feature freeze analysis (requires --freeze-value)'
+    )
+    
+    parser.add_argument(
+        '--freeze-value',
+        type=float,
+        default=None,
+        help='Value to freeze the feature at (requires --freeze-feature)'
+    )
+    
     args = parser.parse_args()
     
     # Validate inputs
@@ -678,7 +703,12 @@ For multi-class models, you can run this script multiple times with different
         sys.exit(1)
     
     # Run all tree-level analysis
-    run_all_tree_level_analysis(tree_analyzer, tracker=tracker)
+    run_all_tree_level_analysis(
+        tree_analyzer,
+        tracker=tracker,
+        freeze_feature=args.freeze_feature,
+        freeze_value=args.freeze_value,
+    )
     
     # Run data-dependent analysis if data directory provided
     data_analysis_done = False

@@ -619,6 +619,12 @@ def run_full_analysis(
     )
     print("  Advanced statistics plots saved")
     
+    # Feature Freeze Analysis
+    print("Running feature freeze analysis...")
+    tree_analyzer.analyze_feature_freeze("norm_iid_pos_strong", 0.0)
+    tree_analyzer.analyze_feature_freeze("bin_pos_strong", 1)
+    tree_analyzer.analyze_feature_freeze("noise_norm", 0.0)
+    
     # Interactive tree visualization
     print("Generating interactive tree visualizations...")
     try:

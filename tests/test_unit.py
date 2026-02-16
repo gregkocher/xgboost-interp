@@ -175,6 +175,51 @@ class TestTreeAnalyzer:
         assert os.path.isfile(fpath)
         assert os.path.getsize(fpath) > 0
 
+    def test_analyze_feature_freeze(self, iris_env):
+        ta = TreeAnalyzer(iris_env["model_path"], save_dir=iris_env["output_dir"])
+        result = ta.analyze_feature_freeze("petal length (cm)", 2.5, verbose=False)
+
+        # Check all expected keys are present
+        expected_keys = {
+            "feature_name", "value",
+            "total_leaves", "reachable_leaves", "frac_leaves_reachable",
+            "total_splits", "reachable_splits", "frozen_splits", "active_splits",
+            "frac_splits_reachable", "frac_splits_still_deciding",
+            "total_cover", "reachable_cover", "frac_cover_reachable",
+        }
+        assert set(result.keys()) == expected_keys
+
+        # Fractions should be in [0, 1]
+        assert 0.0 <= result["frac_leaves_reachable"] <= 1.0
+        assert 0.0 <= result["frac_splits_reachable"] <= 1.0
+        assert 0.0 <= result["frac_splits_still_deciding"] <= 1.0
+        assert 0.0 <= result["frac_cover_reachable"] <= 1.0
+
+        # Reachable counts should not exceed totals
+        assert result["reachable_leaves"] <= result["total_leaves"]
+        assert result["reachable_splits"] <= result["total_splits"]
+
+        # Frozen + active should equal reachable splits
+        assert result["frozen_splits"] + result["active_splits"] == result["reachable_splits"]
+
+        # Totals should be positive for a real model
+        assert result["total_leaves"] > 0
+        assert result["total_splits"] > 0
+
+    def test_analyze_feature_freeze_invalid_feature(self, iris_env):
+        ta = TreeAnalyzer(iris_env["model_path"], save_dir=iris_env["output_dir"])
+        with pytest.raises(ValueError, match="not found in model"):
+            ta.analyze_feature_freeze("nonexistent_feature", 1.0)
+
+    def test_analyze_feature_freeze_verbose(self, iris_env, capsys):
+        ta = TreeAnalyzer(iris_env["model_path"], save_dir=iris_env["output_dir"])
+        ta.analyze_feature_freeze("petal width (cm)", 1.0, verbose=True)
+        captured = capsys.readouterr()
+        assert "Feature Freeze Analysis" in captured.out
+        assert "petal width (cm)" in captured.out
+        assert "Reachable leaves" in captured.out
+        assert "Reachable cover" in captured.out
+
 
 # ---------------------------------------------------------------------------
 # 4. ModelDiff tests (using diff fixture)

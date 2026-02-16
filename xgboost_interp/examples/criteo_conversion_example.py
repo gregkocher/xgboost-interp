@@ -276,6 +276,10 @@ def run_interpretability_analysis(model_path):
     tree_analyzer.plot_tree_depth_histogram()
     tree_analyzer.plot_cumulative_gain()
     
+    # Feature Freeze Analysis
+    print("\nRunning feature freeze analysis...")
+    tree_analyzer.analyze_feature_freeze("I1", 0)
+    
     # Feature co-occurrence analysis
     print("\nGenerating feature co-occurrence analysis...")
     tree_analyzer.plot_tree_level_feature_cooccurrence()

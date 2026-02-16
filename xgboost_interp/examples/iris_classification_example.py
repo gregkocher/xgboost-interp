@@ -114,6 +114,11 @@ def analyze_iris_model(model_path, data_df, feature_names, y_test=None, y_pred_p
     tree_analyzer.plot_tree_depth_histogram()
     tree_analyzer.plot_cumulative_gain()
     
+    # Feature Freeze Analysis
+    print("\nRunning feature freeze analysis...")
+    tree_analyzer.analyze_feature_freeze("petal length (cm)", 2.5)
+    tree_analyzer.analyze_feature_freeze("petal width (cm)", 1.0)
+    
     # Interactive tree visualization (first few trees)
     print("\nGenerating interactive tree visualization...")
     try:

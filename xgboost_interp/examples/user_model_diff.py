@@ -31,7 +31,7 @@ from xgboost_interp.core import ModelDiff
 from xgboost_interp.utils import AnalysisTracker
 
 
-def run_tree_level_comparison(model_diff, tracker=None):
+def run_tree_level_comparison(model_diff, tracker=None, freeze_feature=None, freeze_value=None):
     """
     Run all tree-level ModelDiff comparisons (no data required).
 
@@ -80,6 +80,25 @@ def run_tree_level_comparison(model_diff, tracker=None):
     except Exception as e:
         print(f"  Error: {e}")
         tracker.failure("Feature importance scatters", e)
+
+    # Feature Freeze Analysis (optional, only if user provides --freeze-feature and --freeze-value)
+    if freeze_feature is not None and freeze_value is not None:
+        print(f"\n[5/4] Running feature freeze analysis: {freeze_feature} = {freeze_value}...")
+        print(f"\n--- {model_diff.label_a} ---")
+        try:
+            model_diff.analyzer_a.analyze_feature_freeze(freeze_feature, freeze_value)
+            tracker.success(f"Feature freeze ({model_diff.label_a}): {freeze_feature}={freeze_value}")
+        except Exception as e:
+            print(f"  Error: {e}")
+            tracker.failure(f"Feature freeze ({model_diff.label_a}): {freeze_feature}={freeze_value}", e)
+        
+        print(f"\n--- {model_diff.label_b} ---")
+        try:
+            model_diff.analyzer_b.analyze_feature_freeze(freeze_feature, freeze_value)
+            tracker.success(f"Feature freeze ({model_diff.label_b}): {freeze_feature}={freeze_value}")
+        except Exception as e:
+            print(f"  Error: {e}")
+            tracker.failure(f"Feature freeze ({model_diff.label_b}): {freeze_feature}={freeze_value}", e)
 
     elapsed = time.time() - start_time
     print("\n" + "=" * 70)
@@ -329,6 +348,20 @@ Examples:
         help="Override output directory (default: derived from model filenames)",
     )
 
+    parser.add_argument(
+        "--freeze-feature",
+        type=str,
+        default=None,
+        help="Feature name for feature freeze analysis (requires --freeze-value)",
+    )
+
+    parser.add_argument(
+        "--freeze-value",
+        type=float,
+        default=None,
+        help="Value to freeze the feature at (requires --freeze-feature)",
+    )
+
     args = parser.parse_args()
 
     # Validate inputs
@@ -390,7 +423,12 @@ Examples:
     )
 
     # Part 1: Tree-level comparison (always runs)
-    run_tree_level_comparison(model_diff, tracker=tracker)
+    run_tree_level_comparison(
+        model_diff,
+        tracker=tracker,
+        freeze_feature=args.freeze_feature,
+        freeze_value=args.freeze_value,
+    )
 
     # Part 2: Data-dependent comparison (only if data provided)
     data_analysis_done = False

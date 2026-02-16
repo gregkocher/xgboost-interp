@@ -595,5 +595,146 @@ class TreeAnalyzer:
         plt.tight_layout()
         self.plotter._save_plot('feature_importance_scatter.png')
     
+    def analyze_feature_freeze(
+        self,
+        feature_name: str,
+        value: float,
+        verbose: bool = True,
+    ) -> Dict[str, Any]:
+        """
+        Analyze model impact of freezing a feature at a fixed value.
+        
+        Simulates what happens if feature `feature_name` always equals `value`.
+        At every split on that feature, the model deterministically goes left
+        (value < threshold) or right (value >= threshold), pruning the other
+        branch. At splits on other features, both branches remain reachable.
+        
+        Reports what fraction of the model's leaves, splits, and cover survive.
+        
+        Args:
+            feature_name: Name of the feature to freeze.
+            value: The fixed value to assign to the feature.
+            verbose: If True, print a formatted summary to stdout.
+            
+        Returns:
+            Dict with keys:
+                total_leaves, reachable_leaves, frac_leaves_reachable,
+                total_splits, reachable_splits, frozen_splits, active_splits,
+                frac_splits_reachable, frac_splits_still_deciding,
+                total_cover, reachable_cover, frac_cover_reachable
+        """
+        if feature_name not in self.feature_names:
+            raise ValueError(
+                f"Feature '{feature_name}' not found in model. "
+                f"Available features: {self.feature_names}"
+            )
+        
+        feature_idx = self.feature_names.index(feature_name)
+        
+        total_leaves = 0
+        reachable_leaves = 0
+        total_splits = 0
+        reachable_splits = 0
+        frozen_splits = 0
+        active_splits = 0
+        total_cover = 0.0
+        reachable_cover = 0.0
+        
+        for tree in self.trees:
+            split_indices = tree.get("split_indices", [])
+            split_conditions = tree.get("split_conditions", [])
+            left_children = tree.get("left_children", [])
+            right_children = tree.get("right_children", [])
+            sum_hessian = tree.get("sum_hessian", [])
+            
+            num_nodes = len(left_children)
+            if num_nodes == 0:
+                continue
+            
+            # BFS to determine reachable nodes
+            reachable = [False] * num_nodes
+            reachable[0] = True  # root is always reachable
+            
+            for node_id in range(num_nodes):
+                is_leaf = (left_children[node_id] == -1 and right_children[node_id] == -1)
+                
+                if is_leaf:
+                    # Count this leaf
+                    total_leaves += 1
+                    cover_val = sum_hessian[node_id] if node_id < len(sum_hessian) else 0.0
+                    total_cover += cover_val
+                    if reachable[node_id]:
+                        reachable_leaves += 1
+                        reachable_cover += cover_val
+                else:
+                    # Internal (split) node
+                    total_splits += 1
+                    
+                    if not reachable[node_id]:
+                        continue
+                    
+                    # This split is reachable
+                    reachable_splits += 1
+                    feat_idx = split_indices[node_id]
+                    left_id = left_children[node_id]
+                    right_id = right_children[node_id]
+                    
+                    if feat_idx == feature_idx:
+                        # Frozen split: deterministically go one way
+                        frozen_splits += 1
+                        threshold = split_conditions[node_id]
+                        if value < threshold:
+                            # Go left
+                            if left_id != -1 and left_id < num_nodes:
+                                reachable[left_id] = True
+                        else:
+                            # Go right
+                            if right_id != -1 and right_id < num_nodes:
+                                reachable[right_id] = True
+                    else:
+                        # Active split: both branches reachable
+                        active_splits += 1
+                        if left_id != -1 and left_id < num_nodes:
+                            reachable[left_id] = True
+                        if right_id != -1 and right_id < num_nodes:
+                            reachable[right_id] = True
+        
+        # Compute fractions (avoid division by zero)
+        frac_leaves = reachable_leaves / total_leaves if total_leaves > 0 else 0.0
+        frac_splits = reachable_splits / total_splits if total_splits > 0 else 0.0
+        frac_active = active_splits / total_splits if total_splits > 0 else 0.0
+        frac_cover = reachable_cover / total_cover if total_cover > 0 else 0.0
+        
+        result = {
+            "feature_name": feature_name,
+            "value": value,
+            "total_leaves": total_leaves,
+            "reachable_leaves": reachable_leaves,
+            "frac_leaves_reachable": frac_leaves,
+            "total_splits": total_splits,
+            "reachable_splits": reachable_splits,
+            "frozen_splits": frozen_splits,
+            "active_splits": active_splits,
+            "frac_splits_reachable": frac_splits,
+            "frac_splits_still_deciding": frac_active,
+            "total_cover": total_cover,
+            "reachable_cover": reachable_cover,
+            "frac_cover_reachable": frac_cover,
+        }
+        
+        if verbose:
+            print()
+            print("=" * 60)
+            print(f"Feature Freeze Analysis: {feature_name} = {value}")
+            print("=" * 60)
+            print(f"  Reachable leaves:       {reachable_leaves} / {total_leaves}  ({frac_leaves:.1%})")
+            print(f"  Reachable splits:       {reachable_splits} / {total_splits}  ({frac_splits:.1%})")
+            print(f"    of which frozen (F):  {frozen_splits}  (deterministic, no real decision)")
+            print(f"    of which active:      {active_splits}  ({frac_active:.1%} of total)")
+            print(f"  Reachable cover:        {frac_cover:.1%}")
+            print("=" * 60)
+        
+        return result
+
     def get_feature_importance(self) -> tuple:
         return self.plotter._compute_feature_stats(self.trees, self.feature_names)

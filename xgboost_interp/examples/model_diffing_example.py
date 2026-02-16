@@ -195,6 +195,11 @@ def main():
         save_dir=OUTPUT_DIR,
     )
     
+    # Feature Freeze Analysis on both models for a shared feature
+    print("\n--- Feature Freeze Analysis (both models) ---")
+    tree_analyzer_a.analyze_feature_freeze("norm_iid_pos_strong", 0.0)
+    tree_analyzer_b.analyze_feature_freeze("norm_iid_pos_strong", 0.0)
+    
     # -------------------------------------------------------------------------
     # 5. Run all ModelDiff methods
     # -------------------------------------------------------------------------

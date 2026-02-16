@@ -152,6 +152,11 @@ def analyze_with_interpretability_package(model_path, data_df, feature_names, y_
     tree_plotter.plot_prediction_and_gain_stats(tree_analyzer.trees, log_scale=False)
     tree_plotter.plot_gain_heatmap(tree_analyzer.trees, tree_analyzer.feature_names)
     
+    # Feature Freeze Analysis
+    print("\nRunning feature freeze analysis...")
+    tree_analyzer.analyze_feature_freeze("MedInc", 3.5)
+    tree_analyzer.analyze_feature_freeze("HouseAge", 20.0)
+    
     # Model analysis with data
     print("\nInitializing ModelAnalyzer for data-dependent analysis...")
     model_analyzer = ModelAnalyzer(tree_analyzer)

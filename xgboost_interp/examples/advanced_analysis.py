@@ -87,6 +87,10 @@ def comprehensive_analysis_example():
     except ImportError:
         print("Plotly not available for interactive plots")
     
+    # Feature Freeze Analysis (optional):
+    # Analyze what fraction of the model is impacted if a feature is frozen at a value.
+    # tree_analyzer.analyze_feature_freeze("your_feature_name", 0.5)
+    
     # Data-dependent analysis (if data is available)
     if data_available:
         print("\n" + "="*50)
