@@ -17,6 +17,7 @@ A comprehensive toolkit for interpreting and analyzing XGBoost models. This pack
 
 ### Tree-Level Analysis (No Data Required)
 - **Feature Importance**: Weight, gain, and cover-based importance metrics
+- **Feature Importance by Depth**: Per-depth scatter plots showing how feature pattrns change at each level of the tree
 - **Tree Structure**: Depth analysis, cumulative gain tracking
 - **Feature Interactions**: Co-occurrence analysis at tree and path levels
 - **Visualization**: Heatmaps, distributions, and summary statistics
@@ -44,8 +45,8 @@ A comprehensive toolkit for interpreting and analyzing XGBoost models. This pack
 
 ```bash
 pip install xgboost-interp
-pip install xgboost-interp[shap]    # includes SHAP support
-pip install xgboost-interp[all]     # all optional dependencies
+pip install xgboost-interp[shap]
+pip install xgboost-interp[all]
 ```
 
 ### Development Setup
@@ -187,6 +188,7 @@ The main class for tree-level analysis that doesn't require data.
 - `plot_feature_importance_distributions()`: Boxplots of importance distributions
 - `plot_tree_depth_histogram()`: Distribution of tree depths
 - `plot_cumulative_gain()`: Cumulative loss reduction across trees
+- `plot_feature_importance_scatter_by_depth()`: Per-depth scatter plots (one per split depth level)
 - `plot_feature_usage_heatmap()`: Feature co-occurrence patterns
 - `plot_gain_stats_per_tree()`: Gain distribution across trees
 - `compute_tree_level_feature_cooccurrence()`: Compute features appearing in same tree
@@ -243,6 +245,8 @@ Scatter plot showing feature usage vs gain, with bubble size representing averag
 
 ![Feature Importance Scatter](docs/assets/images/feature_importance_scatter.png)
 *California Housing dataset - bubble chart revealing the relationship between feature usage frequency, gain, and cover*
+
+A companion set of **per-depth scatter plots** is also generated automatically. Each plot is identical in style but restricted to splits at a single depth level (depth 0, depth 1, etc.), revealing how feature roles shift across the tree hierarchy. For a model with max depth D, this produces D plots (one for each split depth 0 through D-1). Output files are named `feature_importance_scatter_depth_0.png`, `feature_importance_scatter_depth_1.png`, etc.
 
 #### 3. Feature Importance Combined
 Combined view of feature importance across weight, gain, and cover metrics.

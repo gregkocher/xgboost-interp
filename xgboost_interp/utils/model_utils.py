@@ -46,6 +46,28 @@ class ModelLoader:
         with open(json_path, "r") as f:
             return json.load(f)
     
+    @staticmethod
+    def _compute_tree_depth(left_children: List[int], right_children: List[int]) -> int:
+        """Compute the depth of a single tree from its child arrays."""
+        if not left_children:
+            return 0
+        from collections import deque
+        max_depth = 0
+        queue = deque([(0, 0)])  # (node_index, depth)
+        while queue:
+            node, depth = queue.popleft()
+            if left_children[node] == -1:
+                # Leaf node
+                max_depth = max(max_depth, depth)
+            else:
+                left = left_children[node]
+                right = right_children[node]
+                if left < len(left_children):
+                    queue.append((left, depth + 1))
+                if right < len(right_children):
+                    queue.append((right, depth + 1))
+        return max_depth
+    
     @classmethod
     def extract_model_metadata(cls, model_json: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -58,36 +80,58 @@ class ModelLoader:
             Dictionary containing extracted metadata
         """
         learner = model_json.get("learner", {})
-        
-        # Extract basic parameters
-        num_trees_total = cls._safe_int(
+        gb_model = (
             learner.get("gradient_booster", {})
             .get("model", {})
-            .get("gbtree_model_param", {})
-            .get("num_trees")
         )
+        gbtree_param = gb_model.get("gbtree_model_param", {})
+        learner_model_param = learner.get("learner_model_param", {})
         
-        # Extract scikit-learn attributes
+        # Extract basic parameters
+        num_trees_total = cls._safe_int(gbtree_param.get("num_trees"))
+        
+        # --- num_trees_outer ---
+        # Try scikit-learn attribute first, then compute from tree counts
         skl_attr = learner.get("attributes", {}).get("scikit_learn", "")
         num_trees_outer = cls._regex_int(skl_attr, r'"n_estimators":\s*(\d+)')
-        max_depth = cls._regex_int(skl_attr, r'"max_depth":\s*(\d+)')
+        if num_trees_outer is None and num_trees_total is not None:
+            num_parallel_tree = cls._safe_int(gbtree_param.get("num_parallel_tree")) or 1
+            num_class = cls._safe_int(learner_model_param.get("num_class")) or 0
+            # For multiclass (num_class >= 2) each boosting round has num_class trees
+            class_multiplier = num_class if num_class >= 2 else 1
+            num_trees_outer = num_trees_total // (class_multiplier * num_parallel_tree)
         
-        # Extract training parameters
+        # --- max_depth ---
+        # Try scikit-learn attribute first, then compute from actual tree structures
+        max_depth = cls._regex_int(skl_attr, r'"max_depth":\s*(\d+)')
+        if max_depth is None:
+            trees = gb_model.get("trees", [])
+            if trees:
+                max_depth = max(
+                    cls._compute_tree_depth(
+                        t.get("left_children", []),
+                        t.get("right_children", [])
+                    )
+                    for t in trees
+                )
+        
+        # --- learning_rate ---
+        # Try learner_train_param, then check attributes for eta
         learning_rate = cls._safe_float(
             learner.get("learner_train_param", {}).get("learning_rate")
         )
+        if learning_rate is None:
+            learning_rate = cls._safe_float(
+                learner.get("learner_train_param", {}).get("eta")
+            )
         
         # Extract model parameters
-        base_score = cls._safe_float(
-            learner.get("learner_model_param", {}).get("base_score")
-        )
+        base_score = cls._safe_float(learner_model_param.get("base_score"))
         
         # Extract feature names
         feature_names = learner.get("feature_names", [])
         if not feature_names:
-            num_feature = cls._safe_int(
-                learner.get("learner_model_param", {}).get("num_feature")
-            )
+            num_feature = cls._safe_int(learner_model_param.get("num_feature"))
             if num_feature is not None:
                 feature_names = [f"f{i}" for i in range(num_feature)]
         

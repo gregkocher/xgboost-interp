@@ -126,6 +126,7 @@ def analyze_with_interpretability_package(model_path, data_df, feature_names, y_
     tree_analyzer.plot_feature_importance_combined(top_n=None)
     tree_analyzer.plot_feature_importance_distributions(log_scale=True, top_n=None)
     tree_analyzer.plot_feature_importance_scatter(top_n=None)
+    tree_analyzer.plot_feature_importance_scatter_by_depth(top_n=None)
     
     # Tree structure analysis
     tree_analyzer.plot_tree_depth_histogram()

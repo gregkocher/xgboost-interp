@@ -109,6 +109,7 @@ def analyze_iris_model(model_path, data_df, feature_names, y_test=None, y_pred_p
     tree_analyzer.plot_feature_importance_combined(top_n=None)
     tree_analyzer.plot_feature_importance_distributions(log_scale=False, top_n=None)
     tree_analyzer.plot_feature_importance_scatter(top_n=None)
+    tree_analyzer.plot_feature_importance_scatter_by_depth(top_n=None)
     
     # Tree structure
     tree_analyzer.plot_tree_depth_histogram()

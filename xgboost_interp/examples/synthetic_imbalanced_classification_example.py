@@ -581,6 +581,7 @@ def run_full_analysis(
     tree_analyzer.plot_feature_importance_combined()
     tree_analyzer.plot_feature_importance_distributions(log_scale=False)
     tree_analyzer.plot_feature_importance_scatter()
+    tree_analyzer.plot_feature_importance_scatter_by_depth()
     print("  Feature importance plots saved")
     
     # Tree structure plots

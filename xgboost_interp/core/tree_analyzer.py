@@ -509,22 +509,24 @@ class TreeAnalyzer:
         plt.savefig(filepath, dpi=300, bbox_inches='tight')
         plt.close()
     
-    def plot_feature_importance_scatter(self, top_n: Optional[int] = None, 
-                                       min_size: int = 50, max_size: int = 1000) -> None:
+    def _render_scatter_plot(self, weight_counts, gain_distributions, cover_distributions,
+                            top_n=None, min_size=50, max_size=1000,
+                            title_suffix='', filename='feature_importance_scatter.png') -> None:
         """
-        Plot feature importance as a scatter plot: usage (weight) vs gain, sized by cover.
+        Render a feature importance scatter plot from pre-computed stats.
         
         Args:
+            weight_counts: Counter of feature split counts
+            gain_distributions: Dict of feature -> list of gain values
+            cover_distributions: Dict of feature -> list of cover values
             top_n: Number of top features to show (None for all)
             min_size: Minimum bubble size
             max_size: Maximum bubble size
+            title_suffix: Extra text appended to the title (e.g. ' (Depth 2)')
+            filename: Output filename
         """
         import matplotlib.pyplot as plt
         import numpy as np
-        
-        weight_counts, gain_distributions, cover_distributions = (
-            self.plotter._compute_feature_stats(self.trees, self.feature_names)
-        )
         
         # Compute statistics for each feature
         features = []
@@ -540,7 +542,7 @@ class TreeAnalyzer:
                 avg_covers.append(np.mean(cover_distributions[feat]))
         
         if not features:
-            print("No feature data found")
+            print(f"No feature data found for scatter plot: {filename}")
             return
         
         # Sort by gain and take top_n
@@ -577,7 +579,7 @@ class TreeAnalyzer:
         
         ax.set_xlabel('Feature Usage (Split Count)', fontsize=12)
         ax.set_ylabel('Average Gain (Loss Reduction)', fontsize=12)
-        ax.set_title('Feature Importance: Usage vs Gain (bubble size = avg cover)', fontsize=14)
+        ax.set_title(f'Feature Importance: Usage vs Gain (bubble size = avg cover){title_suffix}', fontsize=14)
         ax.grid(True, alpha=0.3, linestyle='--', which='both')
         
         # Set log scale on y-axis (gain)
@@ -593,7 +595,59 @@ class TreeAnalyzer:
                              title='Avg Cover', loc='upper right', framealpha=0.9)
         
         plt.tight_layout()
-        self.plotter._save_plot('feature_importance_scatter.png')
+        self.plotter._save_plot(filename)
+    
+    def plot_feature_importance_scatter(self, top_n: Optional[int] = None, 
+                                       min_size: int = 50, max_size: int = 1000) -> None:
+        """
+        Plot feature importance as a scatter plot: usage (weight) vs gain, sized by cover.
+        
+        Args:
+            top_n: Number of top features to show (None for all)
+            min_size: Minimum bubble size
+            max_size: Maximum bubble size
+        """
+        weight_counts, gain_distributions, cover_distributions = (
+            self.plotter._compute_feature_stats(self.trees, self.feature_names)
+        )
+        self._render_scatter_plot(
+            weight_counts, gain_distributions, cover_distributions,
+            top_n=top_n, min_size=min_size, max_size=max_size,
+            title_suffix='', filename='feature_importance_scatter.png'
+        )
+    
+    def plot_feature_importance_scatter_by_depth(self, top_n: Optional[int] = None,
+                                                 min_size: int = 50, max_size: int = 1000) -> None:
+        """
+        Plot per-depth feature importance scatter plots.
+        
+        Produces one scatter plot for each split depth found in the model.
+        Each plot is identical in style to the main scatter plot but only
+        considers splits at a single depth level.
+        
+        Args:
+            top_n: Number of top features to show per depth (None for all)
+            min_size: Minimum bubble size
+            max_size: Maximum bubble size
+        """
+        stats_by_depth = self.plotter._compute_feature_stats_by_depth(
+            self.trees, self.feature_names
+        )
+        
+        if not stats_by_depth:
+            print("No split depth data found")
+            return
+        
+        for depth in sorted(stats_by_depth.keys()):
+            weight_counts, gain_distributions, cover_distributions = stats_by_depth[depth]
+            self._render_scatter_plot(
+                weight_counts, gain_distributions, cover_distributions,
+                top_n=top_n, min_size=min_size, max_size=max_size,
+                title_suffix=f' — Depth {depth}',
+                filename=f'feature_importance_scatter_depth_{depth}.png'
+            )
+        
+        print(f"Generated {len(stats_by_depth)} per-depth scatter plots (depths {sorted(stats_by_depth.keys())})")
     
     def analyze_feature_freeze(
         self,

@@ -41,7 +41,6 @@ def run_all_tree_level_analysis(tree_analyzer, tracker=None, freeze_feature=None
     print("\n" + "="*70)
     print("PART 1: TREE-LEVEL ANALYSIS (No Data Required)")
     print("="*70)
-    print("Note: Marginal impact plots are included here - they only need tree structure!")
     
     # 1. Print model summary
     print("\n[1/15] Printing model summary...")
@@ -78,6 +77,15 @@ def run_all_tree_level_analysis(tree_analyzer, tracker=None, freeze_feature=None
     except Exception as e:
         print(f"Error: {e}")
         tracker.failure("Feature importance scatter", e)
+    
+    # 4b. Per-depth feature importance scatter plots
+    print("\n[4b/15] Generating per-depth feature importance scatter plots...")
+    try:
+        tree_analyzer.plot_feature_importance_scatter_by_depth()
+        tracker.success("Feature importance scatter by depth")
+    except Exception as e:
+        print(f"Error: {e}")
+        tracker.failure("Feature importance scatter by depth", e)
     
     # 5. Tree depth histogram
     print("\n[5/15] Generating tree depth histogram...")

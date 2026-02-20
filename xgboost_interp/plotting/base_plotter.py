@@ -80,6 +80,60 @@ class BasePlotter:
         
         return weight_counts, gain_distributions, cover_distributions
     
+    def _compute_feature_stats_by_depth(
+        self, trees: List[Dict], feature_names: List[str]
+    ) -> Dict[int, Tuple[Counter, defaultdict, defaultdict]]:
+        """
+        Compute feature statistics grouped by node depth in a single pass.
+        
+        Returns:
+            Dict mapping depth -> (weight_counts, gain_distributions, cover_distributions).
+            Only depths that have at least one split are included.
+        """
+        from collections import deque
+        
+        stats_by_depth: Dict[int, Tuple[Counter, defaultdict, defaultdict]] = {}
+        
+        for tree in trees:
+            split_indices = tree.get("split_indices", [])
+            loss_changes = tree.get("loss_changes", [])
+            sum_hessians = tree.get("sum_hessian", [])
+            left_children = tree.get("left_children", [])
+            right_children = tree.get("right_children", [])
+            
+            if not left_children:
+                continue
+            
+            # BFS to compute depth of every node
+            node_depths = [0] * len(left_children)
+            queue = deque([0])  # start at root
+            while queue:
+                node = queue.popleft()
+                left = left_children[node]
+                right = right_children[node]
+                if left != -1 and left < len(left_children):
+                    node_depths[left] = node_depths[node] + 1
+                    queue.append(left)
+                if right != -1 and right < len(left_children):
+                    node_depths[right] = node_depths[node] + 1
+                    queue.append(right)
+            
+            # Accumulate stats per depth for internal nodes
+            for i, feat_idx in enumerate(split_indices):
+                if left_children[i] == -1:  # Skip leaf nodes
+                    continue
+                if 0 <= feat_idx < len(feature_names):
+                    depth = node_depths[i]
+                    if depth not in stats_by_depth:
+                        stats_by_depth[depth] = (Counter(), defaultdict(list), defaultdict(list))
+                    weight_counts, gain_dists, cover_dists = stats_by_depth[depth]
+                    feat_name = feature_names[feat_idx]
+                    weight_counts[feat_name] += 1
+                    gain_dists[feat_name].append(loss_changes[i])
+                    cover_dists[feat_name].append(sum_hessians[i])
+        
+        return stats_by_depth
+    
     def _plot_horizontal_bar(self, data: Dict[str, float], title: str, 
                            xlabel: str, filename: str, top_n: Optional[int] = None) -> None:
         """Create a horizontal bar plot with consistent styling."""
