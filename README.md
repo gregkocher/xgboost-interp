@@ -185,10 +185,11 @@ The main class for tree-level analysis that doesn't require data.
 **Key Methods:**
 - `print_model_summary()`: Display model metadata and structure
 - `plot_feature_importance_combined()`: Normalized importance by weight, gain, cover
-- `plot_feature_importance_distributions()`: Boxplots of importance distributions
+- `plot_feature_importance_distributions(highlight_features=None)`: Boxplots of importance distributions. The `feature_weight.png` bar chart supports optional highlighting (see below).
+- `plot_feature_importance_scatter(highlight_features=None)`: Scatter plot of usage vs gain, sized by cover
 - `plot_tree_depth_histogram()`: Distribution of tree depths
 - `plot_cumulative_gain()`: Cumulative loss reduction across trees
-- `plot_feature_importance_scatter_by_depth()`: Per-depth scatter plots (one per split depth level)
+- `plot_feature_importance_scatter_by_depth(highlight_features=None)`: Per-depth scatter plots (one per split depth level)
 - `plot_feature_usage_heatmap()`: Feature co-occurrence patterns
 - `plot_gain_stats_per_tree()`: Gain distribution across trees
 - `compute_tree_level_feature_cooccurrence()`: Compute features appearing in same tree
@@ -247,6 +248,8 @@ Scatter plot showing feature usage vs gain, with bubble size representing averag
 *California Housing dataset - bubble chart revealing the relationship between feature usage frequency, gain, and cover*
 
 A companion set of **per-depth scatter plots** is also generated automatically. Each plot is identical in style but restricted to splits at a single depth level (depth 0, depth 1, etc.), revealing how feature roles shift across the tree hierarchy. For a model with max depth D, this produces D plots (one for each split depth 0 through D-1). Output files are named `feature_importance_scatter_depth_0.png`, `feature_importance_scatter_depth_1.png`, etc.
+
+**Feature highlighting.** The scatter plot, per-depth scatter plots, and the feature weight bar chart all accept an optional `highlight_features` parameter -- a list of feature names. When provided, the listed features are drawn at full opacity in red (with bold labels) while all other features are faded to low opacity, making it easy to visually locate specific features across plots. When omitted or empty, all features are drawn normally.
 
 #### 3. Feature Importance Combined
 Combined view of feature importance across weight, gain, and cover metrics.

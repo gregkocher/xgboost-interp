@@ -130,13 +130,18 @@ class TreeAnalyzer:
         self.plotter._save_plot('feature_importance_combined.png')
     
     def plot_feature_importance_distributions(self, log_scale: bool = True, 
-                                            top_n: Optional[int] = None) -> None:
+                                            top_n: Optional[int] = None,
+                                            highlight_features: Optional[List[str]] = None) -> None:
         """
         Plot feature importance distributions using different metrics.
         
         Args:
             log_scale: Whether to use log scale for boxplots
             top_n: Number of top features to show (None for all)
+            highlight_features: Optional list of feature names to highlight
+                in the feature_weight bar chart. If provided, highlighted
+                features are drawn in red at full opacity and others are faded.
+                If None or empty, all bars are drawn normally.
         """
         weight_counts, gain_distributions, cover_distributions = (
             self.plotter._compute_feature_stats(self.trees, self.feature_names)
@@ -149,7 +154,8 @@ class TreeAnalyzer:
                 "Feature Importance by Weight (Split Frequency)",
                 "Split Count",
                 'feature_weight.png',
-                top_n
+                top_n,
+                highlight_features=highlight_features
             )
         
         # Plot gain distributions as boxplot
@@ -511,7 +517,8 @@ class TreeAnalyzer:
     
     def _render_scatter_plot(self, weight_counts, gain_distributions, cover_distributions,
                             top_n=None, min_size=50, max_size=1000,
-                            title_suffix='', filename='feature_importance_scatter.png') -> None:
+                            title_suffix='', filename='feature_importance_scatter.png',
+                            highlight_features=None) -> None:
         """
         Render a feature importance scatter plot from pre-computed stats.
         
@@ -524,9 +531,16 @@ class TreeAnalyzer:
             max_size: Maximum bubble size
             title_suffix: Extra text appended to the title (e.g. ' (Depth 2)')
             filename: Output filename
+            highlight_features: Optional list of feature names to highlight.
+                If provided, highlighted features are drawn at full opacity in
+                red while all other features are drawn at low opacity.
+                If None or empty, all features are drawn normally.
         """
         import matplotlib.pyplot as plt
         import numpy as np
+        
+        do_highlight = bool(highlight_features)
+        hl_set = set(highlight_features) if do_highlight else set()
         
         # Compute statistics for each feature
         features = []
@@ -568,14 +582,29 @@ class TreeAnalyzer:
         # Create scatter plot
         fig, ax = plt.subplots(figsize=(12, 8))
         
-        scatter = ax.scatter(weights, avg_gains, s=sizes, alpha=0.7, 
-                           c='lightblue', edgecolors='black', linewidth=1)
-        
-        # Add feature labels (offset slightly above the markers)
         for i, feat in enumerate(features):
-            ax.annotate(feat, (weights[i], avg_gains[i]), 
-                       xytext=(0, 8), textcoords='offset points',
-                       fontsize=8, alpha=0.8, ha='center', va='bottom')
+            if do_highlight:
+                is_hl = feat in hl_set
+                alpha_dot = 1.0 if is_hl else 0.15
+                alpha_text = 1.0 if is_hl else 0.12
+                color = 'red' if is_hl else 'lightblue'
+                edge = 'darkred' if is_hl else 'black'
+                zorder = 10 if is_hl else 1
+            else:
+                alpha_dot = 0.7
+                alpha_text = 0.8
+                color = 'lightblue'
+                edge = 'black'
+                zorder = 1
+            
+            ax.scatter(weights[i], avg_gains[i], s=sizes[i], alpha=alpha_dot,
+                       c=color, edgecolors=edge, linewidth=1, zorder=zorder)
+            ax.annotate(feat, (weights[i], avg_gains[i]),
+                        xytext=(0, 8), textcoords='offset points',
+                        fontsize=9 if (do_highlight and feat in hl_set) else 8,
+                        alpha=alpha_text, ha='center', va='bottom',
+                        fontweight='bold' if (do_highlight and feat in hl_set) else 'normal',
+                        zorder=zorder + 1)
         
         ax.set_xlabel('Feature Usage (Split Count)', fontsize=12)
         ax.set_ylabel('Average Gain (Loss Reduction)', fontsize=12)
@@ -598,7 +627,8 @@ class TreeAnalyzer:
         self.plotter._save_plot(filename)
     
     def plot_feature_importance_scatter(self, top_n: Optional[int] = None, 
-                                       min_size: int = 50, max_size: int = 1000) -> None:
+                                       min_size: int = 50, max_size: int = 1000,
+                                       highlight_features: Optional[List[str]] = None) -> None:
         """
         Plot feature importance as a scatter plot: usage (weight) vs gain, sized by cover.
         
@@ -606,6 +636,10 @@ class TreeAnalyzer:
             top_n: Number of top features to show (None for all)
             min_size: Minimum bubble size
             max_size: Maximum bubble size
+            highlight_features: Optional list of feature names to highlight.
+                If provided, those features are drawn at full opacity in red
+                and all others are faded. If None or empty, all features are
+                drawn normally.
         """
         weight_counts, gain_distributions, cover_distributions = (
             self.plotter._compute_feature_stats(self.trees, self.feature_names)
@@ -613,11 +647,13 @@ class TreeAnalyzer:
         self._render_scatter_plot(
             weight_counts, gain_distributions, cover_distributions,
             top_n=top_n, min_size=min_size, max_size=max_size,
-            title_suffix='', filename='feature_importance_scatter.png'
+            title_suffix='', filename='feature_importance_scatter.png',
+            highlight_features=highlight_features
         )
     
     def plot_feature_importance_scatter_by_depth(self, top_n: Optional[int] = None,
-                                                 min_size: int = 50, max_size: int = 1000) -> None:
+                                                 min_size: int = 50, max_size: int = 1000,
+                                                 highlight_features: Optional[List[str]] = None) -> None:
         """
         Plot per-depth feature importance scatter plots.
         
@@ -629,6 +665,10 @@ class TreeAnalyzer:
             top_n: Number of top features to show per depth (None for all)
             min_size: Minimum bubble size
             max_size: Maximum bubble size
+            highlight_features: Optional list of feature names to highlight.
+                If provided, those features are drawn at full opacity in red
+                and all others are faded. If None or empty, all features are
+                drawn normally.
         """
         stats_by_depth = self.plotter._compute_feature_stats_by_depth(
             self.trees, self.feature_names
@@ -644,7 +684,8 @@ class TreeAnalyzer:
                 weight_counts, gain_distributions, cover_distributions,
                 top_n=top_n, min_size=min_size, max_size=max_size,
                 title_suffix=f' — Depth {depth}',
-                filename=f'feature_importance_scatter_depth_{depth}.png'
+                filename=f'feature_importance_scatter_depth_{depth}.png',
+                highlight_features=highlight_features
             )
         
         print(f"Generated {len(stats_by_depth)} per-depth scatter plots (depths {sorted(stats_by_depth.keys())})")

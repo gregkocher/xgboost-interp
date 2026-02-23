@@ -135,8 +135,22 @@ class BasePlotter:
         return stats_by_depth
     
     def _plot_horizontal_bar(self, data: Dict[str, float], title: str, 
-                           xlabel: str, filename: str, top_n: Optional[int] = None) -> None:
-        """Create a horizontal bar plot with consistent styling."""
+                           xlabel: str, filename: str, top_n: Optional[int] = None,
+                           highlight_features: Optional[List[str]] = None) -> None:
+        """
+        Create a horizontal bar plot with consistent styling.
+        
+        Args:
+            data: Dict mapping feature name -> value
+            title: Plot title
+            xlabel: X-axis label
+            filename: Output filename
+            top_n: Number of top features to show (None for all)
+            highlight_features: Optional list of feature names to highlight.
+                If provided, highlighted features are drawn in red at full
+                opacity while all other bars and labels are faded.
+                If None or empty, all bars are drawn normally.
+        """
         sorted_items = sorted(data.items(), key=lambda x: -x[1])
         if top_n:
             sorted_items = sorted_items[:top_n]
@@ -146,11 +160,35 @@ class BasePlotter:
             return
         
         features, values = zip(*sorted_items)
+        features = list(features)
+        values = list(values)
+        
+        do_highlight = bool(highlight_features)
+        hl_set = set(highlight_features) if do_highlight else set()
         
         fig, ax = self._setup_plot(figsize=(10, max(6, len(features) * 0.3)))
-        ax.barh(features, values)
         
-        self._format_feature_plot(ax, list(features), title, xlabel)
+        if do_highlight:
+            colors = ['red' if f in hl_set else '#1f77b4' for f in features]
+            alphas = [1.0 if f in hl_set else 0.2 for f in features]
+            bars = ax.barh(features, values, color=colors)
+            for bar, a in zip(bars, alphas):
+                bar.set_alpha(a)
+        else:
+            ax.barh(features, values)
+        
+        self._format_feature_plot(ax, features, title, xlabel)
+        
+        # Apply highlight styling to y-tick labels after _format_feature_plot sets them
+        if do_highlight:
+            for lbl in ax.get_yticklabels():
+                if lbl.get_text() in hl_set:
+                    lbl.set_fontweight('bold')
+                    lbl.set_alpha(1.0)
+                    lbl.set_color('darkred')
+                else:
+                    lbl.set_alpha(0.25)
+        
         self._save_plot(filename)
     
     def _plot_boxplot(self, data: Dict[str, List[float]], title: str, 
