@@ -38,7 +38,7 @@ dependencies = [
     "plotly>=5.0.0",
     "pyALE>=0.2.0",
     "scikit-learn>=0.24.0",
-    "scipy>=1.6.0",
+    "scipy>=1.15.3",
     "seaborn>=0.11.0",
     "xgboost>=1.4.0",
 ]
