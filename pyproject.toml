@@ -47,7 +47,7 @@ dependencies = [
 shap = ["shap>=0.40.0"]
 data = ["pyarrow>=10.0.0"]
 all = ["xgboost-interp[shap]", "xgboost-interp[data]"]
-dev = ["pytest>=6.0", "pytest-timeout>=2.0", "xgboost-interp[all]"]
+dev = ["pytest>=9.0.3", "pytest-timeout>=2.0", "xgboost-interp[all]"]
 
 [project.urls]
 Homepage = "https://github.com/gregkocher/xgboost-interp"
